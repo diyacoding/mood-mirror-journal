@@ -3,7 +3,7 @@ import { format, parseISO } from "date-fns";
 import { Flame, Plus, Sparkles, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MoodEntry, MOODS, computeStreak, todayKey, generateInsights } from "@/lib/moodStore";
-import type { Screen } from "./BottomNav";
+import type { Screen } from "../BottomNav";
 
 interface Props {
   entries: MoodEntry[];
