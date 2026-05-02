@@ -150,12 +150,68 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
             <div className="rounded-3xl bg-card border border-border p-5 shadow-card">
               <div className="text-center">
                 <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2 flex items-center justify-center gap-1">
-                  {result.uncertain ? (<><HelpCircle className="h-3 w-3" /> Mixed signals</>) : "Detected"}
+                  {result.confidenceTier === "low" ? (
+                    <><HelpCircle className="h-3 w-3" /> Uncertain emotional state</>
+                  ) : result.confidenceTier === "medium" ? (
+                    <><HelpCircle className="h-3 w-3" /> Possible match</>
+                  ) : (
+                    <>Detected</>
+                  )}
                 </div>
-                <div className="text-5xl mb-2">{detected!.emoji}</div>
-                <div className="font-semibold text-lg">{detected!.label}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Confidence {Math.round(result.confidence * 100)}%
+                {result.confidenceTier === "low" ? (
+                  <>
+                    <div className="text-5xl mb-2">🤔</div>
+                    <div className="font-semibold text-lg">Low confidence reading</div>
+                    <div className="text-xs text-muted-foreground mt-2 px-4">
+                      Facial signals are mixed or unclear. Top possibilities:
+                    </div>
+                    <div className="mt-3 space-y-1 text-sm">
+                      {result.probabilities.slice(0, 3).map(p => {
+                        const m = MOODS.find(x => x.key === p.mood)!;
+                        return (
+                          <div key={p.mood} className="flex justify-center items-center gap-2">
+                            <span>{m.emoji} {m.label}</span>
+                            <span className="text-muted-foreground tabular-nums">
+                              {Math.round(p.probability * 100)}%
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : result.confidenceTier === "medium" ? (
+                  <>
+                    <div className="text-4xl mb-2">{detected!.emoji}</div>
+                    <div className="font-semibold text-lg">{detected!.label}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Confidence {Math.round(result.confidence * 100)}% · top 2 shown
+                    </div>
+                    <div className="mt-3 flex justify-center gap-4 text-sm">
+                      {result.probabilities.slice(0, 2).map(p => {
+                        const m = MOODS.find(x => x.key === p.mood)!;
+                        return (
+                          <div key={p.mood} className="flex items-center gap-1">
+                            <span>{m.emoji} {m.label}</span>
+                            <span className="text-muted-foreground tabular-nums">
+                              {Math.round(p.probability * 100)}%
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-5xl mb-2">{detected!.emoji}</div>
+                    <div className="font-semibold text-lg">{detected!.label}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Confidence {Math.round(result.confidence * 100)}%
+                    </div>
+                  </>
+                )}
+                <div className="text-[10px] text-muted-foreground mt-2">
+                  Method: {result.framesUsed}-frame rolling average
+                  {result.stabilityLocked ? " · stability lock active" : ""}
                 </div>
               </div>
 
