@@ -2,95 +2,100 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Mood Mirror — calming, minimalist design system. All colors HSL. */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 200 40% 98%;
+    --foreground: 215 30% 20%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 30% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 30% 20%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Soft sky blue */
+    --primary: 200 70% 60%;
+    --primary-foreground: 200 40% 98%;
+    --primary-glow: 195 85% 75%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Soft mint */
+    --secondary: 160 50% 90%;
+    --secondary-foreground: 165 40% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 200 25% 94%;
+    --muted-foreground: 215 15% 50%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Lavender accent */
+    --accent: 250 60% 92%;
+    --accent-foreground: 250 40% 30%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 65%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 200 25% 90%;
+    --input: 200 25% 92%;
+    --ring: 200 70% 60%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
+
+    /* Mood palette */
+    --mood-happy: 45 95% 65%;
+    --mood-calm: 160 55% 65%;
+    --mood-neutral: 215 15% 70%;
+    --mood-anxious: 270 55% 70%;
+    --mood-stressed: 25 80% 65%;
+    --mood-sad: 215 50% 60%;
+
+    /* Gradients */
+    --gradient-sky: linear-gradient(135deg, hsl(200 75% 80%), hsl(180 60% 85%));
+    --gradient-dawn: linear-gradient(135deg, hsl(250 70% 88%), hsl(200 75% 85%));
+    --gradient-meadow: linear-gradient(135deg, hsl(160 55% 80%), hsl(195 75% 85%));
+    --gradient-soft: linear-gradient(180deg, hsl(200 40% 98%), hsl(200 50% 95%));
+
+    /* Shadows */
+    --shadow-soft: 0 8px 30px -12px hsl(200 60% 50% / 0.15);
+    --shadow-glow: 0 10px 40px -15px hsl(200 80% 60% / 0.35);
+    --shadow-card: 0 2px 12px -4px hsl(215 30% 30% / 0.08);
+
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 215 35% 10%;
+    --foreground: 200 30% 95%;
+    --card: 215 30% 14%;
+    --card-foreground: 200 30% 95%;
+    --popover: 215 30% 14%;
+    --popover-foreground: 200 30% 95%;
+    --primary: 195 75% 65%;
+    --primary-foreground: 215 35% 10%;
+    --primary-glow: 195 85% 70%;
+    --secondary: 165 25% 22%;
+    --secondary-foreground: 160 50% 90%;
+    --muted: 215 25% 18%;
+    --muted-foreground: 215 15% 65%;
+    --accent: 250 30% 25%;
+    --accent-foreground: 250 60% 92%;
+    --destructive: 0 60% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 25% 20%;
+    --input: 215 25% 20%;
+    --ring: 195 75% 65%;
+    --gradient-sky: linear-gradient(135deg, hsl(200 50% 30%), hsl(180 40% 25%));
+    --gradient-dawn: linear-gradient(135deg, hsl(250 40% 30%), hsl(200 50% 28%));
+    --gradient-meadow: linear-gradient(135deg, hsl(160 35% 28%), hsl(195 45% 30%));
+    --gradient-soft: linear-gradient(180deg, hsl(215 35% 10%), hsl(215 30% 13%));
   }
 }
 
@@ -98,8 +103,45 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
   }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  .gradient-sky { background: var(--gradient-sky); }
+  .gradient-dawn { background: var(--gradient-dawn); }
+  .gradient-meadow { background: var(--gradient-meadow); }
+  .gradient-soft { background: var(--gradient-soft); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .transition-smooth { transition: var(--transition-smooth); }
+
+  .animate-fade-in {
+    animation: fade-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  .animate-scale-in {
+    animation: scale-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
