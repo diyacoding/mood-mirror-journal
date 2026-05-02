@@ -13,10 +13,44 @@ export interface DetectionResult {
 }
 
 const FEEDBACK_KEY = "moodmirror.face.feedback.v1";
+const SESSION_KEY = "moodmirror.face.session.v1";
 // Smoothing & learning rates
 const TEMPERATURE = 0.65; // <1 sharpens, >1 flattens
 const FEEDBACK_STRENGTH = 0.35; // how much correction history nudges priors
 const PRIOR = 0.05; // floor so every mood keeps some probability
+const BALANCE_STRENGTH = 0.9; // how aggressively we pull toward natural frequencies
+const FEEDBACK_OVERRIDE = 1.5; // bias magnitude above which balancing relaxes
+
+// "Natural" base rates — what an unbiased session should roughly look like.
+// Neutral/calm dominate slightly; intense emotions are rarer.
+const NATURAL_FREQ: Record<MoodKey, number> = {
+  happy: 0.22,
+  calm: 0.22,
+  neutral: 0.24,
+  anxious: 0.12,
+  stressed: 0.10,
+  sad: 0.10,
+};
+
+// Session-scoped counts of what we've already emitted, so we can dampen
+// over-represented moods within a single usage session.
+type SessionCounts = Record<MoodKey, number>;
+const emptyCounts = (): SessionCounts =>
+  MOODS.reduce((a, m) => { a[m.key] = 0; return a; }, {} as SessionCounts);
+
+const loadSession = (): SessionCounts => {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return emptyCounts();
+    return { ...emptyCounts(), ...JSON.parse(raw) };
+  } catch { return emptyCounts(); }
+};
+const saveSession = (c: SessionCounts) => {
+  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(c)); } catch {}
+};
+export const resetSessionBalance = () => {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+};
 
 type Bias = Record<MoodKey, number>;
 
@@ -131,9 +165,36 @@ export const detectMoodFromVideo = (video: HTMLVideoElement): DetectionResult =>
   }
   for (const k of Object.keys(dist) as MoodKey[]) dist[k] /= s;
 
-  // 4. Sample from the distribution (random, weighted) instead of argmax
+  // 4. Session-level frequency balancing.
+  // Compare emitted frequencies so far vs. natural base rates and dampen
+  // moods that are over-represented this session. If the user's feedback
+  // bias is strong enough, we relax balancing for that mood so genuine
+  // signal can still come through.
+  const counts = loadSession();
+  const totalEmitted = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (totalEmitted > 0) {
+    let s2 = 0;
+    for (const k of Object.keys(dist) as MoodKey[]) {
+      const observed = counts[k] / totalEmitted;
+      const expected = NATURAL_FREQ[k];
+      // ratio > 1 means over-represented → dampen; < 1 → boost
+      const ratio = (expected + 0.02) / (observed + 0.02);
+      const strongFeedback = Math.abs(bias[k] ?? 0) >= FEEDBACK_OVERRIDE;
+      const pull = strongFeedback ? BALANCE_STRENGTH * 0.3 : BALANCE_STRENGTH;
+      const adjusted = dist[k] * Math.pow(ratio, pull);
+      dist[k] = adjusted;
+      s2 += adjusted;
+    }
+    for (const k of Object.keys(dist) as MoodKey[]) dist[k] /= s2 || 1;
+  }
+
+  // 5. Sample from the distribution (random, weighted) instead of argmax
   const mood = sampleFrom(dist);
   const confidence = dist[mood];
+
+  // 6. Update session counts so the next scan stays balanced
+  counts[mood] = (counts[mood] ?? 0) + 1;
+  saveSession(counts);
 
   return { mood, confidence, distribution: dist };
 };
