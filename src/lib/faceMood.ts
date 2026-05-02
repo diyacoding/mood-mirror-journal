@@ -46,15 +46,20 @@ export interface AffectState {
   arousal: number;  //  0..1  (calm ↔ energetic)
 }
 
+export type ConfidenceTier = "high" | "medium" | "low";
+
 export interface DetectionResult {
   mood: MoodKey;
   confidence: number;
+  confidenceTier: ConfidenceTier;
   uncertain: boolean;
   faceDetected: boolean;
   affect: AffectState;
   signals: SignalReading[];        // top contributing facial signals
-  probabilities: MoodProbability[]; // full distribution, sorted desc
+  probabilities: MoodProbability[]; // full smoothed distribution, sorted desc
   secondary: MoodProbability[];     // up to 2 next most likely
+  framesUsed: number;               // number of frames in rolling average
+  stabilityLocked: boolean;         // true when prior dominant mood was held
   consistency?: {                   // self-report alignment (when available)
     selfReported: MoodKey;
     aligned: boolean;
@@ -269,68 +274,167 @@ const buildExplanation = (
   return `${lead} Valence ${v}, Arousal ${a}. Signals: ${signalText}.`;
 };
 
-const UNCERTAIN_TOP = 0.42;
-const UNCERTAIN_GAP = 0.08;
+// Confidence tiers per spec
+const CONF_HIGH = 0.75;
+const CONF_MED = 0.50;
+
+// Temporal smoothing config
+const FRAME_COUNT = 8;          // rolling window size
+const FRAME_INTERVAL_MS = 70;   // ~14fps sampling
+const SIGNAL_EMA_ALPHA = 0.55;  // exponential smoothing for raw signals (noise reduction)
+const STABILITY_LOCK_MS = 3500; // 3.5s lock on dominant mood
+const SWITCH_MARGIN = 0.20;     // need +20% over locked mood to switch
+
+// Stability lock state (persists across detection calls in same session)
+let lockedMood: MoodKey | null = null;
+let lockedAt = 0;
+
+const tierFor = (p: number): ConfidenceTier =>
+  p >= CONF_HIGH ? "high" : p >= CONF_MED ? "medium" : "low";
+
+// Smooth raw signals with EMA across the captured frames to reduce noise
+// from blinks, micro-movements, and head jitter.
+const smoothSignalSeries = (series: Signals[]): Signals => {
+  if (series.length === 1) return series[0];
+  const keys = Object.keys(series[0]) as (keyof Signals)[];
+  const out = { ...series[0] } as Signals;
+  for (let i = 1; i < series.length; i++) {
+    for (const k of keys) {
+      (out as any)[k] = SIGNAL_EMA_ALPHA * series[i][k] + (1 - SIGNAL_EMA_ALPHA) * (out as any)[k];
+    }
+  }
+  return out;
+};
 
 // ---------- main entry ----------
 export const detectMoodFromVideo = async (
   video: HTMLVideoElement,
 ): Promise<DetectionResult> => {
   const landmarker = await initFaceLandmarker();
-  const ts = performance.now();
-  const result = landmarker.detectForVideo(video, ts);
-  const blends = toBlendMap(result);
 
-  if (!blends) {
+  // Multi-frame capture
+  const distSeries: Record<MoodKey, number>[] = [];
+  const signalSeries: Signals[] = [];
+  let lastBlends: BlendMap | null = null;
+
+  for (let i = 0; i < FRAME_COUNT; i++) {
+    const ts = performance.now();
+    const result = landmarker.detectForVideo(video, ts);
+    const blends = toBlendMap(result);
+    if (blends) {
+      lastBlends = blends;
+      const s = computeSignals(blends);
+      signalSeries.push(s);
+      const a = computeAffect(s);
+      const scores = scoreMoods(s, a);
+      distSeries.push(softmax(scores));
+    }
+    if (i < FRAME_COUNT - 1) {
+      await new Promise(r => setTimeout(r, FRAME_INTERVAL_MS));
+    }
+  }
+
+  if (!lastBlends || distSeries.length === 0) {
     // Honest "no face" output — never coerced to neutral.
     return {
       mood: "neutral",
       confidence: 0,
+      confidenceTier: "low",
       uncertain: true,
       faceDetected: false,
       affect: { valence: 0, arousal: 0 },
       signals: [],
       probabilities: [],
       secondary: [],
+      framesUsed: 0,
+      stabilityLocked: false,
       explanation:
         "No face detected. Please center your face in the frame with even lighting and try again.",
     };
   }
 
-  const signals = computeSignals(blends);
-  const affect = computeAffect(signals);
-  const scores = scoreMoods(signals, affect);
+  // Rolling-average probability distribution across frames
+  const avgDist = MOODS.reduce((acc, m) => { acc[m.key] = 0; return acc; }, {} as Record<MoodKey, number>);
+  for (const d of distSeries) {
+    for (const k of Object.keys(d) as MoodKey[]) avgDist[k] += d[k];
+  }
+  for (const k of Object.keys(avgDist) as MoodKey[]) avgDist[k] /= distSeries.length;
 
-  // Per-user calibration nudge from prior corrections.
+  // Per-user calibration nudge applied to the smoothed distribution
   const calib = loadCalibration();
-  for (const k of Object.keys(scores) as MoodKey[]) {
-    scores[k] += 0.25 * calib[k];
+  let calibSum = 0;
+  for (const k of Object.keys(avgDist) as MoodKey[]) {
+    avgDist[k] = Math.max(0, avgDist[k] * (1 + 0.15 * calib[k]));
+    calibSum += avgDist[k];
+  }
+  if (calibSum > 0) {
+    for (const k of Object.keys(avgDist) as MoodKey[]) avgDist[k] /= calibSum;
   }
 
-  const dist = softmax(scores);
-  const ranked = (Object.keys(dist) as MoodKey[])
-    .map(k => ({ mood: k, probability: dist[k] }))
+  const ranked = (Object.keys(avgDist) as MoodKey[])
+    .map(k => ({ mood: k, probability: avgDist[k] }))
     .sort((a, b) => b.probability - a.probability);
 
-  const top = ranked[0];
+  let top = ranked[0];
   const second = ranked[1];
-  const uncertain =
-    top.probability < UNCERTAIN_TOP ||
-    (second && top.probability - second.probability < UNCERTAIN_GAP);
 
-  const sigs = topSignals(signals);
+  // Stability lock — keep prior dominant mood unless new top exceeds by margin
+  let stabilityLocked = false;
+  const now = Date.now();
+  if (lockedMood && now - lockedAt < STABILITY_LOCK_MS) {
+    const lockedProb = avgDist[lockedMood] ?? 0;
+    if (top.mood !== lockedMood && top.probability - lockedProb < SWITCH_MARGIN) {
+      top = { mood: lockedMood, probability: lockedProb };
+      stabilityLocked = true;
+    }
+  }
+  // Update lock to current dominant
+  if (!stabilityLocked) {
+    lockedMood = top.mood;
+    lockedAt = now;
+  }
+
+  // Re-sort with the (possibly locked) top first
+  const finalRanked = stabilityLocked
+    ? [top, ...ranked.filter(r => r.mood !== top.mood)]
+    : ranked;
+
+  const tier = tierFor(top.probability);
+  const gap = second ? top.probability - second.probability : 1;
+  const uncertain = tier === "low" || gap < 0.05;
+
+  // Smoothed signals for explanation/UI
+  const smoothed = smoothSignalSeries(signalSeries);
+  const affect = computeAffect(smoothed);
+  const sigs = topSignals(smoothed);
   const consistency = consistencyCheck(top.mood);
-  const explanation = buildExplanation(top.mood, uncertain, affect, sigs);
+
+  const moodLabel = MOODS.find(m => m.key === top.mood)?.label ?? top.mood;
+  const lead = uncertain
+    ? "Low confidence emotional reading — facial signals are mixed or unclear."
+    : tier === "high"
+      ? `Stable ${moodLabel.toLowerCase()} expression detected across ${distSeries.length} frames.`
+      : `Likely ${moodLabel.toLowerCase()}, with some variation across frames.`;
+  const lockNote = stabilityLocked ? " Stability lock held to prevent flicker." : "";
+  const signalText = sigs.length
+    ? sigs.map(s => `${s.label} ${(s.value * 100).toFixed(0)}%`).join(", ")
+    : "no strong facial signals";
+  const explanation =
+    `${lead}${lockNote} Method: ${distSeries.length}-frame rolling average. ` +
+    `Valence ${affect.valence.toFixed(2)}, Arousal ${affect.arousal.toFixed(2)}. Signals: ${signalText}.`;
 
   return {
     mood: top.mood,
     confidence: top.probability,
+    confidenceTier: tier,
     uncertain,
     faceDetected: true,
     affect,
     signals: sigs,
-    probabilities: ranked,
-    secondary: ranked.slice(1, 3),
+    probabilities: finalRanked,
+    secondary: finalRanked.slice(1, 3),
+    framesUsed: distSeries.length,
+    stabilityLocked,
     consistency,
     explanation,
   };
