@@ -46,15 +46,20 @@ export interface AffectState {
   arousal: number;  //  0..1  (calm ↔ energetic)
 }
 
+export type ConfidenceTier = "high" | "medium" | "low";
+
 export interface DetectionResult {
   mood: MoodKey;
   confidence: number;
+  confidenceTier: ConfidenceTier;
   uncertain: boolean;
   faceDetected: boolean;
   affect: AffectState;
   signals: SignalReading[];        // top contributing facial signals
-  probabilities: MoodProbability[]; // full distribution, sorted desc
+  probabilities: MoodProbability[]; // full smoothed distribution, sorted desc
   secondary: MoodProbability[];     // up to 2 next most likely
+  framesUsed: number;               // number of frames in rolling average
+  stabilityLocked: boolean;         // true when prior dominant mood was held
   consistency?: {                   // self-report alignment (when available)
     selfReported: MoodKey;
     aligned: boolean;
