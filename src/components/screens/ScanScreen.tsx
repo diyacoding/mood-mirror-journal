@@ -121,7 +121,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
                 </div>
               </div>
 
-              {result.secondary.length > 0 && (
+              {result.secondary && result.secondary.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-border">
                   <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
                     {result.uncertain ? "Other possibilities" : "Secondary signals"}
