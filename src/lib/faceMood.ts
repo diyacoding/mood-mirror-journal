@@ -1,132 +1,205 @@
-// On-device probabilistic facial mood estimator.
+// Real, on-device facial affect estimation using MediaPipe FaceLandmarker.
 //
-// Pipeline per scan:
-//   1. Sample visual signals from the frame (brightness, warmth, variance,
-//      color skew). Multiple frames are averaged when possible to reduce
-//      single-frame noise.
-//   2. Convert signals → mood scores using SOFT, overlapping mappings (no
-//      hard if/else). Neutral and Stressed/Anxious have NO score advantage.
-//   3. Apply learned user-feedback bias (corrections nudge future weights).
-//   4. Apply behavior-adjustment layer (sleep / exercise / screen time)
-//      from the most recent log entry. This is a small modulator, never
-//      the primary signal.
-//   5. Apply anti-repetition dampening based on the last 2 emitted moods.
-//   6. Apply session-level natural-frequency balancing.
-//   7. Inject small controlled randomness (Dirichlet-style jitter) so
-//      consecutive scans aren't identical when signals are similar.
-//   8. If the top probability is too low or top-2 are too close → return
-//      an "uncertain" mixed result (primary + secondaries) instead of a
-//      forced single label. Neutral/Stressed/Anxious are NEVER used as
-//      a fallback — uncertainty is its own state.
-//   9. Build a short human-readable explanation from the dominant signals
-//      + behavior adjustments that contributed.
+// We use the FaceLandmarker model with `outputFaceBlendshapes: true`. Blendshapes
+// are 52 ARKit-style activation coefficients (0-1) computed from 478 face
+// landmarks — e.g. `mouthSmileLeft`, `browDownRight`, `eyeBlinkLeft`,
+// `jawOpen`. These are real, measured facial signals.
+//
+// From those signals we compute a Valence-Arousal affect estimate, then map
+// that to one of the app's mood categories. There is NO randomness, NO
+// fallback to neutral, NO weighted simulation. If no face is detected or
+// signals are too weak/conflicting we report uncertainty honestly.
+//
+// Pipeline:
+//   1. Lazy-load FaceLandmarker (WASM + model from CDN).
+//   2. Extract blendshapes from the current video frame.
+//   3. Compute interpretable signals: smile, frown, brow-furrow, brow-raise,
+//      eye-openness, jaw-tension, mouth-open.
+//   4. Compute Valence (smile - frown - brow-furrow) and Arousal
+//      (brow-raise + jaw-open + eye-widen + brow-furrow*0.5).
+//   5. Score each mood from those signals (transparent linear combos).
+//   6. Apply small per-user calibration bias from prior corrections.
+//   7. Pick top mood; flag uncertain when top score is low or top-2 close.
+//   8. Build an explanation listing the actual signals that drove the result.
 //
 // Frames never leave the device.
 
+import {
+  FaceLandmarker,
+  FilesetResolver,
+  type FaceLandmarkerResult,
+} from "@mediapipe/tasks-vision";
 import { MOODS, type MoodKey, loadEntries } from "./moodStore";
 
 export interface MoodProbability {
   mood: MoodKey;
-  probability: number; // 0-1
+  probability: number;
+}
+
+export interface SignalReading {
+  label: string;
+  value: number; // 0-1 normalized
+}
+
+export interface AffectState {
+  valence: number;  // -1..1  (negative ↔ positive)
+  arousal: number;  //  0..1  (calm ↔ energetic)
 }
 
 export interface DetectionResult {
-  mood: MoodKey;                     // top sampled mood
-  confidence: number;                // 0-1
-  uncertain: boolean;                // true when signals are mixed
-  secondary: MoodProbability[];      // up to 2 next-most-likely
-  distribution: Record<MoodKey, number>;
-  explanation: string;               // short human reason
+  mood: MoodKey;
+  confidence: number;
+  uncertain: boolean;
+  faceDetected: boolean;
+  affect: AffectState;
+  signals: SignalReading[];        // top contributing facial signals
+  probabilities: MoodProbability[]; // full distribution, sorted desc
+  secondary: MoodProbability[];     // up to 2 next most likely
+  consistency?: {                   // self-report alignment (when available)
+    selfReported: MoodKey;
+    aligned: boolean;
+    alignmentPercent: number;
+  };
+  explanation: string;
 }
 
-// ---------- storage keys ----------
-const FEEDBACK_KEY = "moodmirror.face.feedback.v1";
-const SESSION_KEY = "moodmirror.face.session.v1";
-const RECENT_KEY = "moodmirror.face.recent.v1";
+// ---------- model lifecycle ----------
+let landmarkerPromise: Promise<FaceLandmarker> | null = null;
 
-// ---------- tunables ----------
-const TEMPERATURE = 0.85;            // softer → fewer landslide picks
-const FEEDBACK_STRENGTH = 0.30;
-const PRIOR = 0.04;
-const BALANCE_STRENGTH = 0.7;
-const FEEDBACK_OVERRIDE = 1.5;
-const REPEAT_DAMP_LAST = 0.55;       // multiply prob of mood == last scan
-const REPEAT_DAMP_PREV = 0.75;       // multiply prob of mood == 2 scans ago
-const NOISE_STRENGTH = 0.12;         // jitter magnitude on probabilities
-const UNCERTAIN_TOP_THRESHOLD = 0.42;
-const UNCERTAIN_GAP_THRESHOLD = 0.08;
-
-// Equal natural frequencies — no built-in bias toward any mood.
-const NATURAL_FREQ: Record<MoodKey, number> = {
-  happy: 1 / 6,
-  calm: 1 / 6,
-  neutral: 1 / 6,
-  anxious: 1 / 6,
-  stressed: 1 / 6,
-  sad: 1 / 6,
+export const initFaceLandmarker = (): Promise<FaceLandmarker> => {
+  if (landmarkerPromise) return landmarkerPromise;
+  landmarkerPromise = (async () => {
+    const filesetResolver = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm",
+    );
+    return FaceLandmarker.createFromOptions(filesetResolver, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO",
+      numFaces: 1,
+      outputFaceBlendshapes: true,
+      outputFacialTransformationMatrixes: false,
+    });
+  })();
+  return landmarkerPromise;
 };
 
-// ---------- session counts (for frequency balancing) ----------
-type SessionCounts = Record<MoodKey, number>;
-const emptyCounts = (): SessionCounts =>
-  MOODS.reduce((a, m) => { a[m.key] = 0; return a; }, {} as SessionCounts);
+// ---------- per-user calibration (from feedback corrections) ----------
+const CALIBRATION_KEY = "moodmirror.face.calibration.v2";
+type Calibration = Record<MoodKey, number>;
+const emptyCalibration = (): Calibration =>
+  MOODS.reduce((a, m) => { a[m.key] = 0; return a; }, {} as Calibration);
 
-const loadSession = (): SessionCounts => {
+const loadCalibration = (): Calibration => {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    if (!raw) return emptyCounts();
-    return { ...emptyCounts(), ...JSON.parse(raw) };
-  } catch { return emptyCounts(); }
+    const raw = localStorage.getItem(CALIBRATION_KEY);
+    if (!raw) return emptyCalibration();
+    return { ...emptyCalibration(), ...JSON.parse(raw) };
+  } catch { return emptyCalibration(); }
 };
-const saveSession = (c: SessionCounts) => {
-  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(c)); } catch {}
-};
-export const resetSessionBalance = () => {
-  try {
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(RECENT_KEY);
-  } catch {}
-};
-
-// ---------- recent emissions (for anti-repetition) ----------
-const loadRecent = (): MoodKey[] => {
-  try {
-    const raw = sessionStorage.getItem(RECENT_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-};
-const pushRecent = (m: MoodKey) => {
-  const arr = [m, ...loadRecent()].slice(0, 3);
-  try { sessionStorage.setItem(RECENT_KEY, JSON.stringify(arr)); } catch {}
-};
-
-// ---------- feedback bias (learning loop) ----------
-type Bias = Record<MoodKey, number>;
-const emptyBias = (): Bias =>
-  MOODS.reduce((a, m) => { a[m.key] = 0; return a; }, {} as Bias);
-
-const loadBias = (): Bias => {
-  try {
-    const raw = localStorage.getItem(FEEDBACK_KEY);
-    if (!raw) return emptyBias();
-    return { ...emptyBias(), ...JSON.parse(raw) };
-  } catch { return emptyBias(); }
-};
-const saveBias = (b: Bias) => {
-  try { localStorage.setItem(FEEDBACK_KEY, JSON.stringify(b)); } catch {}
+const saveCalibration = (c: Calibration) => {
+  try { localStorage.setItem(CALIBRATION_KEY, JSON.stringify(c)); } catch {}
 };
 
 export const recordFeedback = (suggested: MoodKey, chosen: MoodKey) => {
-  const bias = loadBias();
-  for (const k of Object.keys(bias) as MoodKey[]) bias[k] *= 0.92;
-  bias[chosen] = (bias[chosen] ?? 0) + 1;
-  if (suggested !== chosen) bias[suggested] = (bias[suggested] ?? 0) - 0.5;
-  saveBias(bias);
+  const c = loadCalibration();
+  // gentle decay so old corrections don't dominate forever
+  for (const k of Object.keys(c) as MoodKey[]) c[k] *= 0.9;
+  c[chosen] += 0.5;
+  if (suggested !== chosen) c[suggested] -= 0.25;
+  saveCalibration(c);
 };
 
-// ---------- math helpers ----------
-const softmax = (scores: Record<MoodKey, number>, temp = 1) => {
-  const max = Math.max(...Object.values(scores));
+export const resetSessionBalance = () => {
+  // kept for API compatibility — nothing to reset in the new system.
+};
+
+// ---------- blendshape helpers ----------
+type BlendMap = Record<string, number>;
+
+const toBlendMap = (result: FaceLandmarkerResult): BlendMap | null => {
+  const bs = result.faceBlendshapes?.[0]?.categories;
+  if (!bs || !bs.length) return null;
+  const map: BlendMap = {};
+  for (const c of bs) map[c.categoryName] = c.score;
+  return map;
+};
+
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+const avg = (...xs: number[]) => xs.reduce((s, x) => s + x, 0) / (xs.length || 1);
+
+// Derive interpretable signals from raw blendshapes.
+const computeSignals = (b: BlendMap) => {
+  const smile = clamp01(avg(b.mouthSmileLeft ?? 0, b.mouthSmileRight ?? 0));
+  const frown = clamp01(avg(b.mouthFrownLeft ?? 0, b.mouthFrownRight ?? 0));
+  const lipPress = clamp01(avg(b.mouthPressLeft ?? 0, b.mouthPressRight ?? 0));
+  const browDown = clamp01(avg(b.browDownLeft ?? 0, b.browDownRight ?? 0));
+  const browUp = clamp01(
+    avg(b.browInnerUp ?? 0, b.browOuterUpLeft ?? 0, b.browOuterUpRight ?? 0),
+  );
+  const eyeBlink = clamp01(avg(b.eyeBlinkLeft ?? 0, b.eyeBlinkRight ?? 0));
+  const eyeWide = clamp01(avg(b.eyeWideLeft ?? 0, b.eyeWideRight ?? 0));
+  const eyeSquint = clamp01(avg(b.eyeSquintLeft ?? 0, b.eyeSquintRight ?? 0));
+  const jawOpen = clamp01(b.jawOpen ?? 0);
+  const mouthOpen = clamp01(b.mouthOpen ?? jawOpen);
+  const cheekPuff = clamp01(b.cheekPuff ?? 0);
+  // openness: 1 when wide / open, 0 when blinking
+  const eyeOpenness = clamp01(1 - eyeBlink);
+
+  return {
+    smile, frown, lipPress, browDown, browUp,
+    eyeOpenness, eyeWide, eyeSquint, jawOpen, mouthOpen, cheekPuff,
+  };
+};
+
+type Signals = ReturnType<typeof computeSignals>;
+
+// Valence & Arousal from signals — standard affective-computing formulation.
+const computeAffect = (s: Signals): AffectState => {
+  const valence = clamp(
+    1.4 * s.smile - 1.2 * s.frown - 0.6 * s.browDown - 0.3 * s.lipPress + 0.2 * s.cheekPuff,
+    -1, 1,
+  );
+  const arousal = clamp01(
+    0.6 * s.browUp + 0.5 * s.eyeWide + 0.5 * s.jawOpen +
+    0.4 * s.browDown + 0.3 * s.mouthOpen,
+  );
+  return { valence, arousal };
+};
+
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+
+// Score moods directly from interpretable signals — every term is
+// auditable, none of them are random.
+const scoreMoods = (s: Signals, a: AffectState): Record<MoodKey, number> => {
+  return {
+    happy:
+      1.6 * s.smile + 0.5 * Math.max(0, a.valence) + 0.3 * s.cheekPuff
+      - 0.8 * s.frown - 0.6 * s.browDown,
+    calm:
+      0.9 * (1 - a.arousal) + 0.4 * Math.max(0, a.valence) + 0.3 * s.eyeOpenness
+      - 0.7 * s.browDown - 0.5 * s.frown - 0.4 * s.eyeWide,
+    sad:
+      1.3 * s.frown + 0.5 * Math.max(0, -a.valence) + 0.3 * (1 - s.eyeOpenness)
+      - 0.9 * s.smile,
+    anxious:
+      0.9 * s.browUp + 0.7 * s.eyeWide + 0.4 * a.arousal + 0.3 * s.lipPress
+      - 0.6 * s.smile,
+    stressed:
+      1.0 * s.browDown + 0.6 * s.lipPress + 0.5 * s.eyeSquint + 0.4 * a.arousal
+      - 0.7 * s.smile,
+    neutral:
+      0.6 * (1 - Math.abs(a.valence)) + 0.5 * (1 - a.arousal)
+      - 0.8 * s.smile - 0.8 * s.frown - 0.6 * s.browDown - 0.4 * s.browUp,
+  };
+};
+
+const softmax = (scores: Record<MoodKey, number>, temp = 0.55) => {
+  const vals = Object.values(scores);
+  const max = Math.max(...vals);
   const exps = {} as Record<MoodKey, number>;
   let sum = 0;
   for (const k of Object.keys(scores) as MoodKey[]) {
@@ -137,242 +210,128 @@ const softmax = (scores: Record<MoodKey, number>, temp = 1) => {
   return exps;
 };
 
-const sampleFrom = (dist: Record<MoodKey, number>): MoodKey => {
-  const r = Math.random();
-  let cum = 0;
-  for (const k of Object.keys(dist) as MoodKey[]) {
-    cum += dist[k];
-    if (r <= cum) return k;
-  }
-  return (Object.keys(dist) as MoodKey[])[0];
+// Pick the top contributing signals to display to the user.
+const topSignals = (s: Signals): SignalReading[] => {
+  const all: SignalReading[] = [
+    { label: "Smile (mouth corners up)", value: s.smile },
+    { label: "Frown (mouth corners down)", value: s.frown },
+    { label: "Brow furrow", value: s.browDown },
+    { label: "Brow raise", value: s.browUp },
+    { label: "Eye widen", value: s.eyeWide },
+    { label: "Eye squint", value: s.eyeSquint },
+    { label: "Lip press / tension", value: s.lipPress },
+    { label: "Jaw open", value: s.jawOpen },
+    { label: "Cheek lift", value: s.cheekPuff },
+  ];
+  return all
+    .filter(x => x.value >= 0.08)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 4);
 };
 
-const normalize = (d: Record<MoodKey, number>) => {
-  let s = 0;
-  for (const k of Object.keys(d) as MoodKey[]) s += d[k];
-  if (s <= 0) return d;
-  for (const k of Object.keys(d) as MoodKey[]) d[k] /= s;
-  return d;
-};
-
-// ---------- visual scoring ----------
-// Soft, overlapping mappings. Crucially, neutral and stressed/anxious have
-// NO additive constant — they must earn their probability from signals.
-const scoreFromSignals = (
-  brightness: number,  // 0-1
-  warmth: number,      // -1..1
-  variance: number,    // ~0..0.5+
-  greenSkew: number,   // g - (r+b)/2, normalized roughly -0.3..0.3
-): Record<MoodKey, number> => {
-  const b = brightness - 0.5;
-  const v = variance;          // higher = more texture / motion
-  const w = warmth;            // + warm, - cool
-  return {
-    happy:    1.9 * b + 1.6 * w - 0.5 * v + 0.4 * greenSkew,
-    calm:     1.4 * Math.max(0, b) - 1.0 * v - 0.6 * Math.abs(w) + 0.6,
-    neutral:  0.9 - 1.6 * Math.abs(b) - 1.1 * Math.abs(w) - 0.9 * v,
-    anxious:  1.5 * v - 0.6 * b + 0.3 * Math.abs(w) - 0.4,
-    stressed: 1.6 * v + 1.0 * Math.max(0, w) - 0.5 * b - 0.5,
-    sad:     -1.7 * b - 1.0 * Math.max(0, w) - 0.3 * v + 0.2 * Math.max(0, -w),
-  };
-};
-
-const sampleVariance = (data: Uint8ClampedArray): number => {
-  let sum = 0, sumSq = 0, n = 0;
-  for (let i = 0; i < data.length; i += 16) {
-    const v = (data[i] + data[i + 1] + data[i + 2]) / 3;
-    sum += v; sumSq += v * v; n++;
-  }
-  const mean = sum / n;
-  return Math.sqrt(Math.max(0, sumSq / n - mean * mean));
-};
-
-// Sample one frame's signals.
-const sampleFrame = (video: HTMLVideoElement) => {
-  const canvas = document.createElement("canvas");
-  const w = (canvas.width = 64);
-  const h = (canvas.height = 64);
-  const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(video, 0, 0, w, h);
-  const { data } = ctx.getImageData(0, 0, w, h);
-  let r = 0, g = 0, b = 0, n = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
-  }
-  r /= n; g /= n; b /= n;
-  return {
-    brightness: (r + g + b) / 3 / 255,
-    warmth: (r - b) / 255,
-    variance: sampleVariance(data) / 255,
-    greenSkew: (g - (r + b) / 2) / 255,
-  };
-};
-
-// ---------- behavior adjustment layer ----------
-// Pulls signals from the most recent logged entry (if any). This is a small
-// modulator — never the dominant force.
-const behaviorAdjustments = (): { delta: Record<MoodKey, number>; reasons: string[] } => {
-  const delta = emptyBias();
-  const reasons: string[] = [];
+// Optional behavioral validation against the most recent self-report.
+const consistencyCheck = (top: MoodKey) => {
   const entries = loadEntries();
-  if (!entries.length) return { delta, reasons };
+  if (!entries.length) return undefined;
   const last = entries[entries.length - 1];
-  const beh = last.behaviors || {};
-
-  if (typeof beh.sleepHours === "number") {
-    if (beh.sleepHours < 6) {
-      delta.stressed += 0.35; delta.anxious += 0.25; delta.happy -= 0.2; delta.calm -= 0.15;
-      reasons.push("low sleep");
-    } else if (beh.sleepHours >= 7.5) {
-      delta.calm += 0.25; delta.happy += 0.15; delta.stressed -= 0.15;
-      reasons.push("good sleep");
-    }
-  }
-  if (typeof beh.exerciseMinutes === "number" && beh.exerciseMinutes >= 20) {
-    delta.calm += 0.2; delta.happy += 0.25; delta.stressed -= 0.2; delta.sad -= 0.15;
-    reasons.push("recent exercise");
-  }
-  if (typeof beh.screenTimeHours === "number" && beh.screenTimeHours >= 6) {
-    delta.stressed += 0.2; delta.anxious += 0.2; delta.calm -= 0.15;
-    reasons.push("high screen time");
-  }
-  return { delta, reasons };
+  const groups: Record<string, MoodKey[]> = {
+    positive: ["happy", "calm"],
+    negative: ["sad"],
+    activated: ["anxious", "stressed"],
+    neutral: ["neutral"],
+  };
+  const groupOf = (m: MoodKey) =>
+    Object.keys(groups).find(g => groups[g].includes(m)) ?? "neutral";
+  const same = last.mood === top;
+  const sameGroup = groupOf(last.mood) === groupOf(top);
+  const alignmentPercent = same ? 100 : sameGroup ? 60 : 25;
+  return {
+    selfReported: last.mood,
+    aligned: same || sameGroup,
+    alignmentPercent,
+  };
 };
 
-// ---------- explanation ----------
-const explain = (
+const buildExplanation = (
   primary: MoodKey,
   uncertain: boolean,
-  signals: { brightness: number; warmth: number; variance: number },
-  behaviorReasons: string[],
+  affect: AffectState,
+  signals: SignalReading[],
 ): string => {
-  const visual: string[] = [];
-  if (signals.brightness > 0.55) visual.push("bright lighting");
-  else if (signals.brightness < 0.4) visual.push("low lighting");
-  if (signals.warmth > 0.08) visual.push("warm tones");
-  else if (signals.warmth < -0.05) visual.push("cool tones");
-  if (signals.variance > 0.32) visual.push("active expression");
-  else if (signals.variance < 0.15) visual.push("steady expression");
-
-  const visualPart = visual.length ? `Visual cues: ${visual.join(", ")}.` : "";
-  const behaviorPart = behaviorReasons.length
-    ? ` Behavior factors: ${behaviorReasons.join(", ")}.`
-    : "";
+  const signalText = signals.length
+    ? signals.map(s => `${s.label} ${(s.value * 100).toFixed(0)}%`).join(", ")
+    : "no strong facial signals";
+  const v = affect.valence.toFixed(2);
+  const a = affect.arousal.toFixed(2);
   const lead = uncertain
-    ? "Signals are mixed — showing top possibilities."
-    : `Leaning ${primary} based on the read.`;
-  return `${lead} ${visualPart}${behaviorPart}`.trim();
+    ? "Mixed facial signals — showing top possibilities."
+    : `Read as ${primary} from facial landmarks.`;
+  return `${lead} Valence ${v}, Arousal ${a}. Signals: ${signalText}.`;
 };
 
+const UNCERTAIN_TOP = 0.42;
+const UNCERTAIN_GAP = 0.08;
+
 // ---------- main entry ----------
-export const detectMoodFromVideo = (video: HTMLVideoElement): DetectionResult => {
-  // 1. Multi-frame sample (3 quick reads) to reduce single-frame noise.
-  const frames = [sampleFrame(video), sampleFrame(video), sampleFrame(video)];
-  const brightness = frames.reduce((s, f) => s + f.brightness, 0) / frames.length;
-  const warmth = frames.reduce((s, f) => s + f.warmth, 0) / frames.length;
-  const variance = frames.reduce((s, f) => s + f.variance, 0) / frames.length;
-  const greenSkew = frames.reduce((s, f) => s + f.greenSkew, 0) / frames.length;
+export const detectMoodFromVideo = async (
+  video: HTMLVideoElement,
+): Promise<DetectionResult> => {
+  const landmarker = await initFaceLandmarker();
+  const ts = performance.now();
+  const result = landmarker.detectForVideo(video, ts);
+  const blends = toBlendMap(result);
 
-  // 2. Visual scores.
-  const scores = scoreFromSignals(brightness, warmth, variance, greenSkew);
+  if (!blends) {
+    // Honest "no face" output — never coerced to neutral.
+    return {
+      mood: "neutral",
+      confidence: 0,
+      uncertain: true,
+      faceDetected: false,
+      affect: { valence: 0, arousal: 0 },
+      signals: [],
+      probabilities: [],
+      secondary: [],
+      explanation:
+        "No face detected. Please center your face in the frame with even lighting and try again.",
+    };
+  }
 
-  // 3. Feedback bias.
-  const bias = loadBias();
+  const signals = computeSignals(blends);
+  const affect = computeAffect(signals);
+  const scores = scoreMoods(signals, affect);
+
+  // Per-user calibration nudge from prior corrections.
+  const calib = loadCalibration();
   for (const k of Object.keys(scores) as MoodKey[]) {
-    scores[k] += FEEDBACK_STRENGTH * (bias[k] ?? 0);
+    scores[k] += 0.25 * calib[k];
   }
 
-  // 4. Behavior-adjustment layer (small, additive in score-space).
-  const { delta: behDelta, reasons: behReasons } = behaviorAdjustments();
-  for (const k of Object.keys(scores) as MoodKey[]) {
-    scores[k] += behDelta[k];
-  }
-
-  // 5. Softmax → distribution + prior floor.
-  let dist = softmax(scores, TEMPERATURE);
-  for (const k of Object.keys(dist) as MoodKey[]) dist[k] += PRIOR;
-  dist = normalize(dist);
-
-  // 6. Anti-repetition dampening (last 2 emitted).
-  const recent = loadRecent();
-  if (recent[0]) dist[recent[0]] *= REPEAT_DAMP_LAST;
-  if (recent[1]) dist[recent[1]] *= REPEAT_DAMP_PREV;
-  // If last two are identical, dampen even harder to break the loop.
-  if (recent[0] && recent[0] === recent[1]) dist[recent[0]] *= 0.6;
-  dist = normalize(dist);
-
-  // 7. Session frequency balancing toward equal natural rates.
-  const counts = loadSession();
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  if (total > 0) {
-    for (const k of Object.keys(dist) as MoodKey[]) {
-      const observed = counts[k] / total;
-      const expected = NATURAL_FREQ[k];
-      const ratio = (expected + 0.02) / (observed + 0.02);
-      const strongFeedback = Math.abs(bias[k] ?? 0) >= FEEDBACK_OVERRIDE;
-      const pull = strongFeedback ? BALANCE_STRENGTH * 0.3 : BALANCE_STRENGTH;
-      dist[k] = dist[k] * Math.pow(ratio, pull);
-    }
-    dist = normalize(dist);
-  }
-
-  // 8. Controlled jitter — small per-mood multiplicative noise so two
-  // similar frames don't yield identical distributions.
-  for (const k of Object.keys(dist) as MoodKey[]) {
-    const jitter = 1 + (Math.random() - 0.5) * 2 * NOISE_STRENGTH;
-    dist[k] = Math.max(0, dist[k] * jitter);
-  }
-  dist = normalize(dist);
-
-  // 9. Sample primary + rank secondaries.
+  const dist = softmax(scores);
   const ranked = (Object.keys(dist) as MoodKey[])
     .map(k => ({ mood: k, probability: dist[k] }))
     .sort((a, b) => b.probability - a.probability);
+
   const top = ranked[0];
   const second = ranked[1];
-
-  // Detect uncertainty: low top probability OR top-2 too close.
   const uncertain =
-    top.probability < UNCERTAIN_TOP_THRESHOLD ||
-    (second && top.probability - second.probability < UNCERTAIN_GAP_THRESHOLD);
+    top.probability < UNCERTAIN_TOP ||
+    (second && top.probability - second.probability < UNCERTAIN_GAP);
 
-  // When uncertain we still need a primary to display, but we sample from
-  // the top 3 weighted — we never silently coerce to neutral / stressed.
-  let primary: MoodKey;
-  if (uncertain) {
-    const top3 = ranked.slice(0, 3);
-    const sumTop = top3.reduce((s, x) => s + x.probability, 0);
-    const subDist = {} as Record<MoodKey, number>;
-    for (const k of MOODS.map(m => m.key)) subDist[k] = 0;
-    for (const x of top3) subDist[x.mood] = x.probability / sumTop;
-    primary = sampleFrom(subDist);
-  } else {
-    primary = sampleFrom(dist);
-  }
-
-  const confidence = dist[primary];
-  const secondary: MoodProbability[] = ranked
-    .filter(x => x.mood !== primary)
-    .slice(0, 2);
-
-  // 10. Update session + recent state.
-  counts[primary] = (counts[primary] ?? 0) + 1;
-  saveSession(counts);
-  pushRecent(primary);
-
-  const explanation = explain(
-    primary,
-    uncertain,
-    { brightness, warmth, variance },
-    behReasons,
-  );
+  const sigs = topSignals(signals);
+  const consistency = consistencyCheck(top.mood);
+  const explanation = buildExplanation(top.mood, uncertain, affect, sigs);
 
   return {
-    mood: primary,
-    confidence,
+    mood: top.mood,
+    confidence: top.probability,
     uncertain,
-    secondary,
-    distribution: dist,
+    faceDetected: true,
+    affect,
+    signals: sigs,
+    probabilities: ranked,
+    secondary: ranked.slice(1, 3),
+    consistency,
     explanation,
   };
 };

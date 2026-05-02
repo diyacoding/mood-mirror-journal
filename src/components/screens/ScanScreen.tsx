@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, RotateCcw, Sparkles, HelpCircle } from "lucide-react";
+import { ArrowLeft, Camera, RotateCcw, Sparkles, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MOODS, MoodKey } from "@/lib/moodStore";
-import { detectMoodFromVideo, recordFeedback, type DetectionResult } from "@/lib/faceMood";
+import {
+  detectMoodFromVideo,
+  initFaceLandmarker,
+  recordFeedback,
+  type DetectionResult,
+} from "@/lib/faceMood";
 import { MoodPicker } from "@/components/MoodPicker";
 import { toast } from "sonner";
 
@@ -15,6 +20,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [ready, setReady] = useState(false);
+  const [modelLoading, setModelLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<DetectionResult | null>(null);
@@ -23,6 +29,11 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Kick off model load in parallel with camera permission.
+      initFaceLandmarker()
+        .then(() => !cancelled && setModelLoading(false))
+        .catch((e) => !cancelled && setError(`Could not load face model: ${e?.message ?? e}`));
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user", width: 480, height: 480 },
@@ -45,15 +56,20 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
     };
   }, []);
 
-  const scan = () => {
-    if (!videoRef.current || !ready) return;
+  const scan = async () => {
+    if (!videoRef.current || !ready || modelLoading) return;
     setScanning(true);
-    setTimeout(() => {
-      const r = detectMoodFromVideo(videoRef.current!);
+    try {
+      // Brief warm-up so the user sees feedback and the video has fresh frames.
+      await new Promise(r => setTimeout(r, 400));
+      const r = await detectMoodFromVideo(videoRef.current);
       setResult(r);
-      setOverride(r.mood);
+      setOverride(r.faceDetected ? r.mood : undefined);
+    } catch (e: any) {
+      toast.error(`Detection failed: ${e?.message ?? e}`);
+    } finally {
       setScanning(false);
-    }, 1200);
+    }
   };
 
   const reset = () => { setResult(null); setOverride(undefined); };
@@ -61,12 +77,12 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
   const confirm = () => {
     const final = override ?? result?.mood;
     if (!final || !result) return;
-    recordFeedback(result.mood, final);
+    if (result.faceDetected) recordFeedback(result.mood, final);
     toast.success("Mood captured ✨");
     onConfirm(final);
   };
 
-  const detected = result ? MOODS.find(m => m.key === result.mood)! : null;
+  const detected = result?.faceDetected ? MOODS.find(m => m.key === result.mood)! : null;
 
   return (
     <div className="min-h-screen pb-32 animate-fade-in">
@@ -81,7 +97,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
 
       <div className="px-5 pt-6 space-y-6">
         <p className="text-sm text-muted-foreground">
-          Frames stay on your device — nothing is uploaded. We'll suggest a mood; you confirm.
+          On-device face landmark analysis (MediaPipe). Frames never leave your device.
         </p>
 
         <div className="relative aspect-square w-full max-w-sm mx-auto rounded-[2rem] overflow-hidden bg-muted shadow-soft">
@@ -101,12 +117,34 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
         {!result ? (
           <Button
             onClick={scan}
-            disabled={!ready || scanning}
+            disabled={!ready || scanning || modelLoading}
             size="lg"
             className="w-full rounded-full gradient-sky text-primary-foreground border-0 shadow-glow hover:opacity-95"
           >
-            {scanning ? (<><Sparkles className="h-4 w-4 mr-2 animate-pulse" /> Reading expression…</>) : (<><Camera className="h-4 w-4 mr-2" /> Scan now</>)}
+            {modelLoading ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Loading face model…</>
+            ) : scanning ? (
+              <><Sparkles className="h-4 w-4 mr-2 animate-pulse" /> Analyzing landmarks…</>
+            ) : (
+              <><Camera className="h-4 w-4 mr-2" /> Scan now</>
+            )}
           </Button>
+        ) : !result.faceDetected ? (
+          <div className="space-y-4 animate-scale-in">
+            <div className="rounded-3xl bg-card border border-border p-5 shadow-card text-center">
+              <HelpCircle className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+              <div className="font-semibold">No face detected</div>
+              <p className="text-xs text-muted-foreground mt-2">{result.explanation}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={reset} variant="outline" className="rounded-full flex-1">
+                <RotateCcw className="h-4 w-4 mr-1" /> Try again
+              </Button>
+              <Button onClick={onBack} className="rounded-full flex-1">
+                Log manually
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="space-y-5 animate-scale-in">
             <div className="rounded-3xl bg-card border border-border p-5 shadow-card">
@@ -121,20 +159,73 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
                 </div>
               </div>
 
-              {result.secondary && result.secondary.length > 0 && (
+              {/* Affect (Valence / Arousal) */}
+              <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3 text-center">
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Valence</div>
+                  <div className="text-sm font-medium mt-1">
+                    {result.affect.valence >= 0 ? "+" : ""}{result.affect.valence.toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">negative ↔ positive</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Arousal</div>
+                  <div className="text-sm font-medium mt-1">{result.affect.arousal.toFixed(2)}</div>
+                  <div className="text-[10px] text-muted-foreground">calm ↔ energetic</div>
+                </div>
+              </div>
+
+              {/* Probability breakdown */}
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
+                  Probability breakdown
+                </div>
+                <div className="space-y-1.5">
+                  {result.probabilities.map((p) => {
+                    const m = MOODS.find(x => x.key === p.mood)!;
+                    const pct = Math.round(p.probability * 100);
+                    return (
+                      <div key={p.mood} className="flex items-center gap-2 text-xs">
+                        <span className="w-20 shrink-0">{m.emoji} {m.label}</span>
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary/70"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="w-8 text-right tabular-nums text-muted-foreground">{pct}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Facial signals */}
+              {result.signals.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-border">
                   <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
-                    {result.uncertain ? "Other possibilities" : "Secondary signals"}
+                    Facial signals
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {result.secondary.map((s) => {
-                      const m = MOODS.find(x => x.key === s.mood)!;
-                      return (
-                        <span key={s.mood} className="text-xs px-2.5 py-1 rounded-full bg-muted text-foreground/80">
-                          {m.emoji} {m.label} {Math.round(s.probability * 100)}%
-                        </span>
-                      );
-                    })}
+                    {result.signals.map((s) => (
+                      <span key={s.label} className="text-xs px-2.5 py-1 rounded-full bg-muted text-foreground/80">
+                        {s.label} · {Math.round(s.value * 100)}%
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Mood Consistency Check */}
+              {result.consistency && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
+                    Mood consistency check
+                  </div>
+                  <div className="text-xs text-foreground/80">
+                    Last self-report: <span className="font-medium">
+                      {MOODS.find(m => m.key === result.consistency!.selfReported)?.label}
+                    </span> · alignment {result.consistency.alignmentPercent}%
                   </div>
                 </div>
               )}
@@ -146,7 +237,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
 
             <div>
               <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
-                Is this correct? Confirm or change
+                Was this accurate? Confirm or change
               </h3>
               <MoodPicker value={override} onChange={setOverride} />
             </div>
