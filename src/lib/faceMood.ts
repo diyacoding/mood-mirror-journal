@@ -439,5 +439,3 @@ export const detectMoodFromVideo = async (
     explanation,
   };
 };
-  };
-};
