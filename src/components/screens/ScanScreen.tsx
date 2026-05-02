@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeft, Camera, RotateCcw, Sparkles, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MOODS, MoodKey } from "@/lib/moodStore";
-import { detectMoodFromVideo, recordFeedback } from "@/lib/faceMood";
+import { detectMoodFromVideo, recordFeedback, type DetectionResult } from "@/lib/faceMood";
 import { MoodPicker } from "@/components/MoodPicker";
 import { toast } from "sonner";
 
@@ -17,7 +17,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
-  const [result, setResult] = useState<{ mood: MoodKey; confidence: number } | null>(null);
+  const [result, setResult] = useState<DetectionResult | null>(null);
   const [override, setOverride] = useState<MoodKey | undefined>();
 
   useEffect(() => {
@@ -109,17 +109,45 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
           </Button>
         ) : (
           <div className="space-y-5 animate-scale-in">
-            <div className="rounded-3xl bg-card border border-border p-5 text-center shadow-card">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Detected</div>
-              <div className="text-5xl mb-2">{detected!.emoji}</div>
-              <div className="font-semibold text-lg">{detected!.label}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Confidence {Math.round(result.confidence * 100)}%
+            <div className="rounded-3xl bg-card border border-border p-5 shadow-card">
+              <div className="text-center">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2 flex items-center justify-center gap-1">
+                  {result.uncertain ? (<><HelpCircle className="h-3 w-3" /> Mixed signals</>) : "Detected"}
+                </div>
+                <div className="text-5xl mb-2">{detected!.emoji}</div>
+                <div className="font-semibold text-lg">{detected!.label}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Confidence {Math.round(result.confidence * 100)}%
+                </div>
               </div>
+
+              {result.secondary.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
+                    {result.uncertain ? "Other possibilities" : "Secondary signals"}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {result.secondary.map((s) => {
+                      const m = MOODS.find(x => x.key === s.mood)!;
+                      return (
+                        <span key={s.mood} className="text-xs px-2.5 py-1 rounded-full bg-muted text-foreground/80">
+                          {m.emoji} {m.label} {Math.round(s.probability * 100)}%
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-4 text-xs text-muted-foreground leading-relaxed">
+                {result.explanation}
+              </p>
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Confirm or change</h3>
+              <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
+                Is this correct? Confirm or change
+              </h3>
               <MoodPicker value={override} onChange={setOverride} />
             </div>
 
