@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Camera, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MOODS, MoodKey } from "@/lib/moodStore";
-import { detectMoodFromVideo } from "@/lib/faceMood";
+import { detectMoodFromVideo, recordFeedback } from "@/lib/faceMood";
 import { MoodPicker } from "@/components/MoodPicker";
 import { toast } from "sonner";
 
@@ -60,7 +60,8 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
 
   const confirm = () => {
     const final = override ?? result?.mood;
-    if (!final) return;
+    if (!final || !result) return;
+    recordFeedback(result.mood, final);
     toast.success("Mood captured ✨");
     onConfirm(final);
   };
