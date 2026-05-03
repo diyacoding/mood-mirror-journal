@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { MoodPicker } from "@/components/MoodPicker";
-import { MoodEntry, MoodKey, getEntry, todayKey, upsertEntry } from "@/lib/moodStore";
+import { MoodKey } from "@/lib/moodStore";
 import { toast } from "sonner";
 
 interface Props {
