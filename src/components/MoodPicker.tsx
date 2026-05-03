@@ -14,21 +14,20 @@ export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
   const [notes, setNotes] = useState("");
 
   // ✅ FIREBASE SAVE FUNCTION
-  const handleSubmit = async () => {
-    console.log("🔥 SUBMIT CLICKED");
+const handleSubmit = async () => {
+  console.log("CLICKED");
 
-    try {
-      const ref = await addDoc(collection(db, "mood_entries"), {
-        mood: value || "unknown",
-        notes: notes,
-        createdAt: new Date().toISOString()
-      });
+  try {
+    const ref = await addDoc(collection(db, "mood_entries"), {
+      test: "FINAL_TEST",
+      timestamp: Date.now()
+    });
 
-      console.log("✅ SAVED TO FIREBASE:", ref.id);
-    } catch (error) {
-      console.error("❌ FIREBASE ERROR:", error);
-    }
-  };
+    console.log("🔥 FIREBASE SUCCESS:", ref.id);
+  } catch (e) {
+    console.error("❌ FIREBASE ERROR:", e);
+  }
+};
 
   return (
     <div className="flex flex-col gap-4">
