@@ -48,7 +48,7 @@ export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
         },
         createdAt: existing?.createdAt ?? Date.now(),
       };
-      upsertEntry(entry);
+     await addDoc(collection(db, "mood_entries"), entry);
       console.info("[MoodMirror] Entry saved", entry);
       toast.success("Mood saved successfully 🌿");
       onSaved();
