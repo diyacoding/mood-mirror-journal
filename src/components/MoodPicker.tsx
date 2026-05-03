@@ -13,17 +13,18 @@ interface Props {
 export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
   const [notes, setNotes] = useState("");
 
+  // ✅ FIREBASE SAVE FUNCTION
   const handleSubmit = async () => {
-    console.log("🔥 MOOD PICKER CLICKED");
+    console.log("🔥 SUBMIT CLICKED");
 
     try {
-      const docRef = await addDoc(collection(db, "mood_entries"), {
+      const ref = await addDoc(collection(db, "mood_entries"), {
         mood: value || "unknown",
         notes: notes,
         createdAt: new Date().toISOString()
       });
 
-      console.log("✅ FIREBASE SAVED:", docRef.id);
+      console.log("✅ SAVED TO FIREBASE:", ref.id);
     } catch (error) {
       console.error("❌ FIREBASE ERROR:", error);
     }
@@ -32,7 +33,7 @@ export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
   return (
     <div className="flex flex-col gap-4">
 
-      {/* MOOD GRID */}
+      {/* MOOD SELECTOR */}
       <div className="grid grid-cols-3 gap-3">
         {MOODS.map((m) => {
           const active = value === m.key;
@@ -68,7 +69,7 @@ export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
         })}
       </div>
 
-      {/* NOTES */}
+      {/* NOTES INPUT */}
       <textarea
         placeholder="Optional notes..."
         value={notes}
@@ -76,8 +77,9 @@ export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
         className="border rounded-lg p-2 text-sm"
       />
 
-      {/* SUBMIT */}
+      {/* SUBMIT BUTTON */}
       <button
+        type="button"
         onClick={handleSubmit}
         className="mt-2 px-4 py-2 bg-black text-white rounded"
       >
