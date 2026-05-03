@@ -14,16 +14,18 @@ export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
   const [notes, setNotes] = useState("");
 
   const handleSubmit = async () => {
+    console.log("CLICKED");
+
     try {
-      await addDoc(collection(db, "mood_entries"), {
+      const ref = await addDoc(collection(db, "mood_entries"), {
         mood: value,
         notes,
         date: new Date().toISOString()
       });
 
-      console.log("Mood saved!");
+      console.log("SAVED WITH ID:", ref.id);
     } catch (e) {
-      console.error(e);
+      console.error("ERROR:", e);
     }
   };
 
