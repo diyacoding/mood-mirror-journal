@@ -31,7 +31,7 @@ export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
 
   return (
     <div className="flex flex-col gap-4">
-      
+
       {/* MOOD GRID */}
       <div className="grid grid-cols-3 gap-3">
         {MOODS.map((m) => {
