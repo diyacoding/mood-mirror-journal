@@ -18,22 +18,25 @@ export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
 
     try {
       const ref = await addDoc(collection(db, "mood_entries"), {
-        mood: value,
-        notes,
-        date: new Date().toISOString()
+        mood: value || "unknown",
+        notes: notes,
+        createdAt: new Date().toISOString()
       });
 
       console.log("SAVED WITH ID:", ref.id);
-    } catch (e) {
-      console.error("ERROR:", e);
+    } catch (error) {
+      console.error("FIREBASE ERROR:", error);
     }
   };
 
   return (
-    <div>
+    <div className="flex flex-col gap-4">
+      
+      {/* MOOD GRID */}
       <div className="grid grid-cols-3 gap-3">
         {MOODS.map((m) => {
           const active = value === m.key;
+
           return (
             <button
               key={m.key}
@@ -49,7 +52,7 @@ export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
               style={
                 active
                   ? {
-                      background: `linear-gradient(135deg, ${m.color} / 0.15, transparent)`,
+                      background: `linear-gradient(135deg, ${m.color} / 0.15, transparent)`
                     }
                   : undefined
               }
@@ -71,12 +74,22 @@ export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
         })}
       </div>
 
+      {/* NOTES INPUT */}
+      <textarea
+        placeholder="Optional notes..."
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        className="border rounded-lg p-2 text-sm"
+      />
+
+      {/* SUBMIT BUTTON */}
       <button
         onClick={handleSubmit}
-        className="mt-4 px-4 py-2 bg-black text-white rounded"
+        className="mt-2 px-4 py-2 bg-black text-white rounded"
       >
         Submit Mood
       </button>
+
     </div>
   );
 };
