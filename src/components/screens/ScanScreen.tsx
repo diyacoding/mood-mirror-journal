@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Camera, RotateCcw, Sparkles, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MOODS, MoodKey } from "@/lib/moodStore";
+import { MOODS, MoodKey, getEntry, todayKey, upsertEntry } from "@/lib/moodStore";
 import {
   detectMoodFromVideo,
   initFaceLandmarker,
