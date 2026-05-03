@@ -51,12 +51,7 @@ export const saveEntries = (entries: MoodEntry[]) => {
   localStorage.setItem(KEY, JSON.stringify(entries));
 };
 
-export const upsertEntry = (entry: MoodEntry) => {
-  const all = loadEntries().filter(e => e.date !== entry.date);
-  all.push(entry);
-  all.sort((a, b) => a.date.localeCompare(b.date));
-  saveEntries(all);
-};
+
 
 export const getEntry = (date: string) => loadEntries().find(e => e.date === date);
 
