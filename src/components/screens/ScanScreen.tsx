@@ -102,6 +102,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
 
   // 🚀 FIREBASE SAVE (ONLY SOURCE OF TRUTH)
   const confirm = async () => {
+    console.log("👉 CONFIRM BUTTON CLICKED");
     const final = override ?? result?.mood;
 
     if (!final || !result) {
