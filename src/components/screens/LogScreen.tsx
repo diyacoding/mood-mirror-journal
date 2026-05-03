@@ -32,24 +32,30 @@ export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
 
   const save = () => {
     if (!mood) { toast.error("Pick a mood to continue"); return; }
-    const entry: MoodEntry = {
-      date: todayKey(),
-      mood,
-      intensity,
-      note: note.trim() || undefined,
-      behaviors: {
-        sleepHours: num(sleepHours),
-        exerciseMinutes: num(exerciseMinutes),
-        screenTimeHours: num(screenTimeHours),
-        productivityHours: num(productivityHours),
-        socialLevel,
-        custom: custom.filter(c => c.name.trim() && c.value.trim()),
-      },
-      createdAt: Date.now(),
-    };
-    upsertEntry(entry);
-    toast.success("Saved · take a deep breath 🌿");
-    onSaved();
+    try {
+      const entry: MoodEntry = {
+        date: todayKey(),
+        mood,
+        intensity,
+        note: note.trim() || undefined,
+        behaviors: {
+          sleepHours: num(sleepHours),
+          exerciseMinutes: num(exerciseMinutes),
+          screenTimeHours: num(screenTimeHours),
+          productivityHours: num(productivityHours),
+          socialLevel,
+          custom: custom.filter(c => c.name.trim() && c.value.trim()),
+        },
+        createdAt: existing?.createdAt ?? Date.now(),
+      };
+      upsertEntry(entry);
+      console.info("[MoodMirror] Entry saved", entry);
+      toast.success("Mood saved successfully 🌿");
+      onSaved();
+    } catch (e: any) {
+      console.error("[MoodMirror] Save failed", e);
+      toast.error(`Could not save: ${e?.message ?? e}`);
+    }
   };
 
   return (
