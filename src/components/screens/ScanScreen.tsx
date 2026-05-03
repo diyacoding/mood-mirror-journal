@@ -76,10 +76,30 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
 
   const confirm = () => {
     const final = override ?? result?.mood;
-    if (!final || !result) return;
-    if (result.faceDetected) recordFeedback(result.mood, final);
-    toast.success("Mood captured ✨");
-    onConfirm(final);
+    if (!final || !result) {
+      toast.error("Pick a mood first");
+      return;
+    }
+    try {
+      if (result.faceDetected) recordFeedback(result.mood, final);
+      const today = todayKey();
+      const existing = getEntry(today);
+      const intensity = existing?.intensity ?? Math.round((result.confidence ?? 0.6) * 10);
+      upsertEntry({
+        date: today,
+        mood: final,
+        intensity: Math.max(1, Math.min(10, intensity)),
+        note: existing?.note,
+        behaviors: existing?.behaviors ?? {},
+        createdAt: existing?.createdAt ?? Date.now(),
+      });
+      console.info("[MoodMirror] Scan entry saved", { date: today, mood: final });
+      toast.success("Mood saved successfully ✨");
+      onConfirm(final);
+    } catch (e: any) {
+      console.error("[MoodMirror] Save failed", e);
+      toast.error(`Could not save mood: ${e?.message ?? e}`);
+    }
   };
 
   const detected = result?.faceDetected ? MOODS.find(m => m.key === result.mood)! : null;
