@@ -29,7 +29,7 @@ import {
   FilesetResolver,
   type FaceLandmarkerResult,
 } from "@mediapipe/tasks-vision";
-import { MOODS, type MoodKey, loadEntries } from "./moodStore";
+import { MOODS, type MoodKey } from "./moodTypes";
 
 export interface MoodProbability {
   mood: MoodKey;
@@ -235,10 +235,11 @@ const topSignals = (s: Signals): SignalReading[] => {
 };
 
 // Optional behavioral validation against the most recent self-report.
-const consistencyCheck = (top: MoodKey) => {
-  const entries = loadEntries();
-  if (!entries.length) return undefined;
-  const last = entries[entries.length - 1];
+const consistencyCheck = (_top: MoodKey) => {
+  return undefined as undefined | { selfReported: MoodKey; aligned: boolean; alignmentPercent: number };
+  // Behavioral validation moved to caller (uses Firestore entries).
+  // eslint-disable-next-line no-unreachable
+  const last = { mood: "neutral" as MoodKey };
   const groups: Record<string, MoodKey[]> = {
     positive: ["happy", "calm"],
     negative: ["sad"],
