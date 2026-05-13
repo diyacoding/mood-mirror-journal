@@ -113,6 +113,7 @@
 }
 
 @layer utilities {
+  .gradient-primary { background: var(--gradient-primary); }
   .gradient-sky { background: var(--gradient-sky); }
   .gradient-dawn { background: var(--gradient-dawn); }
   .gradient-meadow { background: var(--gradient-meadow); }
