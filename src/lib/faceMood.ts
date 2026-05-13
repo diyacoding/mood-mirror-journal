@@ -235,27 +235,12 @@ const topSignals = (s: Signals): SignalReading[] => {
 };
 
 // Optional behavioral validation against the most recent self-report.
-const consistencyCheck = (_top: MoodKey) => {
-  return undefined as undefined | { selfReported: MoodKey; aligned: boolean; alignmentPercent: number };
-  // Behavioral validation moved to caller (uses Firestore entries).
-  // eslint-disable-next-line no-unreachable
-  const last = { mood: "neutral" as MoodKey };
-  const groups: Record<string, MoodKey[]> = {
-    positive: ["happy", "calm"],
-    negative: ["sad"],
-    activated: ["anxious", "stressed"],
-    neutral: ["neutral"],
-  };
-  const groupOf = (m: MoodKey) =>
-    Object.keys(groups).find(g => groups[g].includes(m)) ?? "neutral";
-  const same = last.mood === top;
-  const sameGroup = groupOf(last.mood) === groupOf(top);
-  const alignmentPercent = same ? 100 : sameGroup ? 60 : 25;
-  return {
-    selfReported: last.mood,
-    aligned: same || sameGroup,
-    alignmentPercent,
-  };
+const consistencyCheck = (_top: MoodKey):
+  | undefined
+  | { selfReported: MoodKey; aligned: boolean; alignmentPercent: number } => {
+  // Behavioral validation against self-reports is now performed by callers
+  // using Firestore data (see useMoodEntries).
+  return undefined;
 };
 
 const buildExplanation = (
