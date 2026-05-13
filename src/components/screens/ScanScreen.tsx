@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MOODS, MoodKey } from "@/lib/moodStore";
+import { moodMeta, type MoodKey } from "@/lib/moodTypes";
 import {
   detectMoodFromVideo,
   initFaceLandmarker,
   type DetectionResult,
 } from "@/lib/faceMood";
 import { MoodPicker } from "@/components/MoodPicker";
+import { addMoodEntry } from "@/lib/moodApi";
 import { toast } from "sonner";
-
-import { collection, addDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 interface Props {
   onBack: () => void;
@@ -24,32 +22,27 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
 
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<DetectionResult | null>(null);
   const [override, setOverride] = useState<MoodKey | undefined>();
   const [saving, setSaving] = useState(false);
 
-  // CAMERA + MODEL
   useEffect(() => {
     let cancelled = false;
-
     (async () => {
       try {
         await initFaceLandmarker();
         if (cancelled) return;
         setLoading(false);
-
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" },
           audio: false,
         });
-
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
-
         streamRef.current = stream;
-
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
@@ -59,57 +52,45 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
         toast.error(e?.message || "Camera error");
       }
     })();
-
     return () => {
       cancelled = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
-  // SCAN
   const scan = async () => {
-    if (!videoRef.current || !ready || loading) return;
-
+    if (!videoRef.current || !ready || scanning) return;
+    setScanning(true);
     try {
       const r = await detectMoodFromVideo(videoRef.current);
       setResult(r);
       setOverride(r.faceDetected ? r.mood : undefined);
-    } catch (e: any) {
+    } catch {
       toast.error("Scan failed");
+    } finally {
+      setScanning(false);
     }
   };
 
-  // RESET
-  const reset = () => {
-    setResult(null);
-    setOverride(undefined);
-  };
+  const reset = () => { setResult(null); setOverride(undefined); };
 
-  // SAVE TO FIREBASE (ONLY PLACE SAVING HAPPENS)
   const confirm = async () => {
     const final = override ?? result?.mood;
-
     if (!final || !result) {
       toast.error("Pick a mood first");
       return;
     }
-
     setSaving(true);
-
     try {
-      const docRef = await addDoc(collection(db, "mood_entries"), {
+      await addMoodEntry({
         mood: final,
-        intensity: Math.round((result.confidence ?? 0.5) * 10),
+        intensity: Math.max(1, Math.round((result.confidence ?? 0.5) * 10)),
         confidence: result.confidence,
         source: "scan",
-        createdAt: new Date().toISOString(),
       });
-
-      console.log("SAVED:", docRef.id);
-
       toast.success("Mood saved ✨");
       onConfirm(final);
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
       toast.error("Save failed");
     } finally {
@@ -117,64 +98,61 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
     }
   };
 
-  const detected = result?.faceDetected
-    ? MOODS.find((m) => m.key === result.mood)
-    : null;
+  const detected = result?.faceDetected ? moodMeta(result.mood) : null;
 
   return (
-    <div className="min-h-screen pb-32">
-      {/* HEADER */}
-      <header className="p-4 border-b flex items-center gap-2">
-        <button onClick={onBack}>
-          <ArrowLeft />
+    <div className="px-5 pt-12 pb-32 animate-fade-in">
+      <header className="flex items-center gap-3 mb-5">
+        <button onClick={onBack} className="rounded-full h-9 w-9 flex items-center justify-center bg-card border border-border">
+          <ArrowLeft className="h-4 w-4" />
         </button>
-        <h1 className="font-semibold">Mood Scan</h1>
+        <h1 className="text-xl font-semibold">Mood scan</h1>
       </header>
 
-      {/* CAMERA */}
-      <div className="p-5">
-        <div className="aspect-square rounded-2xl overflow-hidden bg-gray-200">
-          <video
-            ref={videoRef}
-            className="w-full h-full object-cover"
-            muted
-            playsInline
-          />
-        </div>
-
-        {/* SCAN BUTTON */}
-        {!result ? (
-          <Button
-            onClick={scan}
-            disabled={!ready || loading}
-            className="w-full mt-4"
-          >
-            Scan Mood
-          </Button>
-        ) : (
-          <div className="mt-4 space-y-4">
-            <div className="text-center text-3xl">
-              {detected?.emoji}
-            </div>
-
-            <MoodPicker value={override} onChange={setOverride} />
-
-            <div className="flex gap-2">
-              <Button onClick={reset} variant="outline" className="flex-1">
-                Retake
-              </Button>
-
-              <Button
-                onClick={confirm}
-                className="flex-1"
-                disabled={saving}
-              >
-                {saving ? "Saving..." : "Save Mood"}
-              </Button>
-            </div>
+      <div className="aspect-square rounded-3xl overflow-hidden bg-muted shadow-card relative">
+        <video ref={videoRef} className="w-full h-full object-cover scale-x-[-1]" muted playsInline />
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground bg-card/60">
+            Loading model…
           </div>
         )}
       </div>
+
+      {!result ? (
+        <Button onClick={scan} disabled={!ready || loading || scanning} className="w-full mt-5 rounded-full gradient-primary text-primary-foreground border-0 shadow-glow">
+          {scanning ? "Analyzing…" : "Scan mood"}
+        </Button>
+      ) : (
+        <div className="mt-5 space-y-4">
+          <div className="rounded-3xl bg-card border border-border p-5 shadow-card text-center">
+            {detected ? (
+              <>
+                <div className="text-5xl">{detected.emoji}</div>
+                <div className="font-medium mt-2">{detected.label}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Confidence: {Math.round((result.confidence ?? 0) * 100)}%
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">No face detected. Try again with better lighting.</p>
+            )}
+          </div>
+
+          {detected && (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Adjust if needed:</p>
+              <MoodPicker value={override} onChange={setOverride} />
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button onClick={reset} variant="outline" className="flex-1 rounded-full">Retake</Button>
+            <Button onClick={confirm} disabled={saving || !detected} className="flex-1 rounded-full gradient-primary text-primary-foreground border-0">
+              {saving ? "Saving…" : "Save mood"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

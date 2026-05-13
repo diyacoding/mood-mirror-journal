@@ -1,8 +1,5 @@
-import { MOODS, MoodKey } from "@/lib/moodStore";
+import { MOODS, type MoodKey } from "@/lib/moodTypes";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { collection, addDoc } from "firebase/firestore";
-import { db } from "./firebase";
 
 interface Props {
   value?: MoodKey;
@@ -11,80 +8,28 @@ interface Props {
 }
 
 export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
-  const [notes, setNotes] = useState("");
-
-  // ✅ FIREBASE SAVE FUNCTION
-const handleSubmit = async () => {
-  console.log("CLICKED");
-
-  try {
-    const ref = await addDoc(collection(db, "mood_entries"), {
-      test: "FINAL_TEST",
-      timestamp: Date.now()
-    });
-
-    console.log("🔥 FIREBASE SUCCESS:", ref.id);
-  } catch (e) {
-    console.error("❌ FIREBASE ERROR:", e);
-  }
-};
-
   return (
-    <div className="flex flex-col gap-4">
-
-      {/* MOOD SELECTOR */}
-      <div className="grid grid-cols-3 gap-3">
-        {MOODS.map((m) => {
-          const active = value === m.key;
-
-          return (
-            <button
-              key={m.key}
-              type="button"
-              onClick={() => onChange(m.key)}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1.5 rounded-2xl border bg-card transition-smooth shadow-card",
-                size === "md" ? "py-4" : "py-3",
-                active
-                  ? "border-primary scale-[1.03] shadow-glow"
-                  : "border-border hover:border-primary/40 hover:scale-[1.02]"
-              )}
-              style={
-                active
-                  ? {
-                      background: `linear-gradient(135deg, ${m.color} / 0.15, transparent)`
-                    }
-                  : undefined
-              }
-            >
-              <span className={cn(size === "md" ? "text-3xl" : "text-2xl")}>
-                {m.emoji}
-              </span>
-              <span className="text-xs font-medium text-foreground">
-                {m.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* NOTES INPUT */}
-      <textarea
-        placeholder="Optional notes..."
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        className="border rounded-lg p-2 text-sm"
-      />
-
-      {/* SUBMIT BUTTON */}
-      <button
-        type="button"
-        onClick={handleSubmit}
-        className="mt-2 px-4 py-2 bg-black text-white rounded"
-      >
-        Submit Mood
-      </button>
-
+    <div className="grid grid-cols-3 gap-3">
+      {MOODS.map((m) => {
+        const active = value === m.key;
+        return (
+          <button
+            key={m.key}
+            type="button"
+            onClick={() => onChange(m.key)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1.5 rounded-2xl border bg-card transition-smooth shadow-card",
+              size === "md" ? "py-4" : "py-3",
+              active
+                ? "border-primary scale-[1.03] shadow-glow bg-primary/5"
+                : "border-border hover:border-primary/40 hover:scale-[1.02]",
+            )}
+          >
+            <span className={cn(size === "md" ? "text-3xl" : "text-2xl")}>{m.emoji}</span>
+            <span className="text-xs font-medium text-foreground">{m.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };
