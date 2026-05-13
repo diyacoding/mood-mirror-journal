@@ -6,58 +6,57 @@
 
 @layer base {
   :root {
-    --background: 200 40% 98%;
-    --foreground: 215 30% 20%;
+    --background: 270 40% 98%;
+    --foreground: 265 35% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 215 30% 20%;
+    --card-foreground: 265 35% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 30% 20%;
+    --popover-foreground: 265 35% 15%;
 
-    /* Soft sky blue */
-    --primary: 200 70% 60%;
-    --primary-foreground: 200 40% 98%;
-    --primary-glow: 195 85% 75%;
+    /* Modern purple */
+    --primary: 265 85% 60%;
+    --primary-foreground: 270 40% 98%;
+    --primary-glow: 280 90% 70%;
 
-    /* Soft mint */
-    --secondary: 160 50% 90%;
-    --secondary-foreground: 165 40% 25%;
+    --secondary: 270 50% 94%;
+    --secondary-foreground: 265 40% 25%;
 
-    --muted: 200 25% 94%;
-    --muted-foreground: 215 15% 50%;
+    --muted: 270 25% 95%;
+    --muted-foreground: 265 15% 50%;
 
-    /* Lavender accent */
-    --accent: 250 60% 92%;
-    --accent-foreground: 250 40% 30%;
+    --accent: 285 70% 92%;
+    --accent-foreground: 280 50% 30%;
 
-    --destructive: 0 70% 65%;
+    --destructive: 0 75% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 25% 90%;
-    --input: 200 25% 92%;
-    --ring: 200 70% 60%;
+    --border: 270 25% 90%;
+    --input: 270 25% 92%;
+    --ring: 265 85% 60%;
 
     --radius: 1rem;
 
     /* Mood palette */
     --mood-happy: 45 95% 65%;
-    --mood-calm: 160 55% 65%;
-    --mood-neutral: 215 15% 70%;
-    --mood-anxious: 270 55% 70%;
-    --mood-stressed: 25 80% 65%;
-    --mood-sad: 215 50% 60%;
+    --mood-calm: 175 60% 60%;
+    --mood-neutral: 265 15% 70%;
+    --mood-anxious: 290 60% 70%;
+    --mood-stressed: 15 80% 65%;
+    --mood-sad: 230 50% 60%;
 
     /* Gradients */
-    --gradient-sky: linear-gradient(135deg, hsl(200 75% 80%), hsl(180 60% 85%));
-    --gradient-dawn: linear-gradient(135deg, hsl(250 70% 88%), hsl(200 75% 85%));
-    --gradient-meadow: linear-gradient(135deg, hsl(160 55% 80%), hsl(195 75% 85%));
-    --gradient-soft: linear-gradient(180deg, hsl(200 40% 98%), hsl(200 50% 95%));
+    --gradient-primary: linear-gradient(135deg, hsl(265 85% 60%), hsl(290 90% 70%));
+    --gradient-sky: linear-gradient(135deg, hsl(265 80% 75%), hsl(290 80% 80%));
+    --gradient-dawn: linear-gradient(135deg, hsl(280 70% 88%), hsl(250 80% 90%));
+    --gradient-meadow: linear-gradient(135deg, hsl(285 60% 85%), hsl(265 70% 88%));
+    --gradient-soft: linear-gradient(180deg, hsl(270 40% 98%), hsl(280 50% 95%));
 
     /* Shadows */
-    --shadow-soft: 0 8px 30px -12px hsl(200 60% 50% / 0.15);
-    --shadow-glow: 0 10px 40px -15px hsl(200 80% 60% / 0.35);
-    --shadow-card: 0 2px 12px -4px hsl(215 30% 30% / 0.08);
+    --shadow-soft: 0 8px 30px -12px hsl(265 60% 40% / 0.18);
+    --shadow-glow: 0 12px 40px -12px hsl(280 85% 60% / 0.45);
+    --shadow-card: 0 2px 12px -4px hsl(265 30% 30% / 0.10);
 
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -72,30 +71,31 @@
   }
 
   .dark {
-    --background: 215 35% 10%;
-    --foreground: 200 30% 95%;
-    --card: 215 30% 14%;
-    --card-foreground: 200 30% 95%;
-    --popover: 215 30% 14%;
-    --popover-foreground: 200 30% 95%;
-    --primary: 195 75% 65%;
-    --primary-foreground: 215 35% 10%;
-    --primary-glow: 195 85% 70%;
-    --secondary: 165 25% 22%;
-    --secondary-foreground: 160 50% 90%;
-    --muted: 215 25% 18%;
-    --muted-foreground: 215 15% 65%;
-    --accent: 250 30% 25%;
-    --accent-foreground: 250 60% 92%;
-    --destructive: 0 60% 55%;
+    --background: 265 35% 8%;
+    --foreground: 270 30% 95%;
+    --card: 265 30% 12%;
+    --card-foreground: 270 30% 95%;
+    --popover: 265 30% 12%;
+    --popover-foreground: 270 30% 95%;
+    --primary: 280 85% 70%;
+    --primary-foreground: 265 35% 10%;
+    --primary-glow: 290 90% 75%;
+    --secondary: 265 25% 20%;
+    --secondary-foreground: 270 50% 90%;
+    --muted: 265 25% 16%;
+    --muted-foreground: 265 15% 65%;
+    --accent: 285 30% 25%;
+    --accent-foreground: 285 70% 92%;
+    --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 25% 20%;
-    --input: 215 25% 20%;
-    --ring: 195 75% 65%;
-    --gradient-sky: linear-gradient(135deg, hsl(200 50% 30%), hsl(180 40% 25%));
-    --gradient-dawn: linear-gradient(135deg, hsl(250 40% 30%), hsl(200 50% 28%));
-    --gradient-meadow: linear-gradient(135deg, hsl(160 35% 28%), hsl(195 45% 30%));
-    --gradient-soft: linear-gradient(180deg, hsl(215 35% 10%), hsl(215 30% 13%));
+    --border: 265 25% 20%;
+    --input: 265 25% 20%;
+    --ring: 280 85% 70%;
+    --gradient-primary: linear-gradient(135deg, hsl(280 70% 50%), hsl(290 75% 60%));
+    --gradient-sky: linear-gradient(135deg, hsl(265 50% 30%), hsl(290 50% 35%));
+    --gradient-dawn: linear-gradient(135deg, hsl(280 40% 25%), hsl(265 50% 28%));
+    --gradient-meadow: linear-gradient(135deg, hsl(285 35% 28%), hsl(265 45% 30%));
+    --gradient-soft: linear-gradient(180deg, hsl(265 35% 8%), hsl(265 30% 12%));
   }
 }
 
