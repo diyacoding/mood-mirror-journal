@@ -22,7 +22,7 @@ export type NewMoodEntry = Omit<MoodEntry, "id" | "createdAt" | "date"> & {
   createdAt?: number;
 };
 
-const todayKey = () => {
+export const todayKey = () => { 
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
