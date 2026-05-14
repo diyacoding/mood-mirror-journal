@@ -37,7 +37,17 @@ export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) 
         </div>
         <img src={logo} alt="Mood Mirror" className="w-14 h-14 object-contain animate-glow-pulse" />
       </header>
+<div className="flex flex-col items-center mb-8">
+  <img
+    src={logo}
+    alt="Mood Mirror"
+    className="w-56 mb-4 drop-shadow-[0_0_25px_rgba(168,85,247,0.5)]"
+  />
 
+  <p className="text-purple-200/70 text-center text-sm">
+    Reflect. Track. Understand yourself.
+  </p>
+</div>
       {/* Streak — luxe glass card */}
       <div className="relative rounded-3xl glass-strong p-6 shadow-glow overflow-hidden">
         <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full gradient-glow blur-2xl" />
