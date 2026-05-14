@@ -101,36 +101,39 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
   const detected = result?.faceDetected ? moodMeta(result.mood) : null;
 
   return (
-    <div className="px-5 pt-12 pb-32 animate-fade-in">
-      <header className="flex items-center gap-3 mb-5">
-        <button onClick={onBack} className="rounded-full h-9 w-9 flex items-center justify-center bg-card border border-border">
+    <div className="px-5 pt-10 pb-32 animate-fade-in relative">
+      <div className="absolute -top-24 -left-20 w-72 h-72 rounded-full gradient-glow blur-3xl pointer-events-none" />
+      <header className="flex items-center gap-3 mb-6 relative">
+        <button onClick={onBack} className="rounded-full h-10 w-10 flex items-center justify-center glass hover:ring-glow transition-smooth">
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <h1 className="text-xl font-semibold">Mood scan</h1>
+        <h1 className="font-display text-xl tracking-widest text-glow">Mood scan</h1>
       </header>
 
-      <div className="aspect-square rounded-3xl overflow-hidden bg-muted shadow-card relative">
+      <div className="aspect-square rounded-[2rem] overflow-hidden bg-muted shadow-glow relative ring-glow">
         <video ref={videoRef} className="w-full h-full object-cover scale-x-[-1]" muted playsInline />
+        {/* Scanning aura */}
+        <div className="absolute inset-0 pointer-events-none rounded-[2rem]" style={{ boxShadow: "inset 0 0 80px hsl(270 96% 65% / 0.4)" }} />
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground bg-card/60">
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground glass-strong">
             Loading model…
           </div>
         )}
       </div>
 
       {!result ? (
-        <Button onClick={scan} disabled={!ready || loading || scanning} className="w-full mt-5 rounded-full gradient-primary text-primary-foreground border-0 shadow-glow">
+        <Button onClick={scan} disabled={!ready || loading || scanning} className="w-full mt-6 rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-14 tracking-wider">
           {scanning ? "Analyzing…" : "Scan mood"}
         </Button>
       ) : (
-        <div className="mt-5 space-y-4">
-          <div className="rounded-3xl bg-card border border-border p-5 shadow-card text-center">
+        <div className="mt-6 space-y-4">
+          <div className="rounded-3xl glass-strong p-6 shadow-glow text-center">
             {detected ? (
               <>
-                <div className="text-5xl">{detected.emoji}</div>
-                <div className="font-medium mt-2">{detected.label}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Confidence: {Math.round((result.confidence ?? 0) * 100)}%
+                <div className="text-6xl drop-shadow-[0_0_24px_hsl(270_96%_75%/0.6)]">{detected.emoji}</div>
+                <div className="font-display text-xl mt-3 tracking-widest text-glow">{detected.label}</div>
+                <p className="text-xs text-accent/80 mt-2 uppercase tracking-[0.2em]">
+                  Confidence · {Math.round((result.confidence ?? 0) * 100)}%
                 </p>
               </>
             ) : (
@@ -140,14 +143,14 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
 
           {detected && (
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Adjust if needed:</p>
+              <p className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Adjust if needed</p>
               <MoodPicker value={override} onChange={setOverride} />
             </div>
           )}
 
           <div className="flex gap-2">
-            <Button onClick={reset} variant="outline" className="flex-1 rounded-full">Retake</Button>
-            <Button onClick={confirm} disabled={saving || !detected} className="flex-1 rounded-full gradient-primary text-primary-foreground border-0">
+            <Button onClick={reset} variant="outline" className="flex-1 rounded-full glass border-accent/30 h-12">Retake</Button>
+            <Button onClick={confirm} disabled={saving || !detected} className="flex-1 rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-12">
               {saving ? "Saving…" : "Save mood"}
             </Button>
           </div>

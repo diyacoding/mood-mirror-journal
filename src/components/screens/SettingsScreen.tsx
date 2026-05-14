@@ -46,73 +46,75 @@ export const SettingsScreen = ({ entries }: Props) => {
   };
 
   return (
-    <div className="px-5 pt-12 pb-32 space-y-6 animate-fade-in">
-      <header>
-        <h1 className="text-2xl font-semibold">Settings</h1>
+    <div className="px-5 pt-10 pb-32 space-y-5 animate-fade-in relative">
+      <div className="absolute -top-20 -right-24 w-72 h-72 rounded-full gradient-glow blur-3xl pointer-events-none" />
+      <header className="relative">
+        <p className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Preferences</p>
+        <h1 className="font-display text-2xl mt-2 tracking-widest text-glow">Settings</h1>
       </header>
 
-      <section className="rounded-3xl bg-card border border-border shadow-card overflow-hidden">
+      <section className="rounded-3xl glass shadow-card overflow-hidden">
         <div className="p-5 flex items-start gap-3">
-          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+          <div className="h-10 w-10 rounded-xl bg-accent/15 flex items-center justify-center text-accent ring-1 ring-accent/30">
             <Bell className="h-5 w-5" />
           </div>
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium">Daily reminder</div>
-                <p className="text-xs text-muted-foreground mt-0.5">A gentle nudge to check in.</p>
+                <div className="font-medium tracking-wide">Daily reminder</div>
+                <p className="text-xs text-muted-foreground mt-0.5 font-light">A gentle nudge to reflect.</p>
               </div>
               <Switch checked={reminders} onCheckedChange={toggleReminders} />
             </div>
             {reminders && (
               <div className="mt-4 flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">Remind me at</span>
-                <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-32 rounded-xl" />
+                <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-32 rounded-xl glass border-accent/20" />
               </div>
             )}
           </div>
         </div>
       </section>
 
-      <section className="rounded-3xl bg-card border border-border p-5 shadow-card flex items-start gap-3">
-        <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+      <section className="rounded-3xl glass p-5 shadow-card flex items-start gap-3">
+        <div className="h-10 w-10 rounded-xl bg-accent/15 flex items-center justify-center text-accent ring-1 ring-accent/30">
           <Cloud className="h-5 w-5" />
         </div>
         <div className="flex-1">
-          <div className="font-medium">Cloud sync</div>
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-            All entries are stored in Firebase Firestore and sync across devices in real time.
+          <div className="font-medium tracking-wide">Cloud sync</div>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-light">
+            Entries are synced securely in real time across your devices.
           </p>
-          <p className="text-xs text-muted-foreground mt-2">{entries.length} entries in cloud</p>
+          <p className="text-[10px] text-accent/70 mt-2 uppercase tracking-[0.2em]">{entries.length} entries in cloud</p>
         </div>
       </section>
 
-      <section className="rounded-3xl bg-card border border-border p-5 shadow-card flex items-start gap-3">
-        <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center text-secondary-foreground">
+      <section className="rounded-3xl glass p-5 shadow-card flex items-start gap-3">
+        <div className="h-10 w-10 rounded-xl bg-accent/15 flex items-center justify-center text-accent ring-1 ring-accent/30">
           <Shield className="h-5 w-5" />
         </div>
         <div className="flex-1">
-          <div className="font-medium">Privacy</div>
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+          <div className="font-medium tracking-wide">Privacy</div>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-light">
             Camera frames for mood scans are processed locally and never uploaded.
           </p>
         </div>
       </section>
 
-      <section className="rounded-3xl bg-card border border-destructive/20 p-5 shadow-card flex items-start gap-3">
-        <div className="h-9 w-9 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive">
+      <section className="rounded-3xl glass border-destructive/30 p-5 shadow-card flex items-start gap-3">
+        <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive ring-1 ring-destructive/30">
           <Trash2 className="h-5 w-5" />
         </div>
         <div className="flex-1">
-          <div className="font-medium">Erase all data</div>
-          <p className="text-xs text-muted-foreground mt-1">Delete every entry from the cloud. Cannot be undone.</p>
+          <div className="font-medium tracking-wide">Erase all data</div>
+          <p className="text-xs text-muted-foreground mt-1 font-light">Delete every entry from the cloud. Cannot be undone.</p>
           {!confirming ? (
-            <Button onClick={() => setConfirming(true)} variant="outline" className="mt-3 rounded-full text-destructive border-destructive/30 hover:bg-destructive/5">
+            <Button onClick={() => setConfirming(true)} variant="outline" className="mt-3 rounded-full text-destructive border-destructive/30 hover:bg-destructive/10">
               Erase data
             </Button>
           ) : (
             <div className="flex gap-2 mt-3">
-              <Button onClick={() => setConfirming(false)} variant="outline" className="rounded-full flex-1">Cancel</Button>
+              <Button onClick={() => setConfirming(false)} variant="outline" className="rounded-full flex-1 glass border-accent/20">Cancel</Button>
               <Button onClick={erase} disabled={erasing} className="rounded-full flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 {erasing ? "Erasing..." : "Yes, erase"}
               </Button>
@@ -121,8 +123,8 @@ export const SettingsScreen = ({ entries }: Props) => {
         </div>
       </section>
 
-      <footer className="text-center text-xs text-muted-foreground pt-2 flex items-center justify-center gap-1">
-        Made with <Heart className="h-3 w-3 text-primary fill-primary" /> · Mood Mirror
+      <footer className="text-center text-[11px] text-muted-foreground pt-2 flex items-center justify-center gap-1.5 tracking-wider uppercase">
+        Made with <Heart className="h-3 w-3 text-accent fill-accent" /> · Mood Mirror
       </footer>
     </div>
   );

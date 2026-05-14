@@ -40,7 +40,7 @@ const Index = () => {
   if (!onboarded) return <Onboarding onDone={finishOnboarding} />;
 
   return (
-    <main className="min-h-screen gradient-soft">
+    <main className="min-h-screen relative overflow-x-hidden" style={{ background: "var(--gradient-soft), hsl(var(--background))" }}>
       <div className="max-w-md mx-auto relative">
         {screen === "home" && (
           <HomeScreen
