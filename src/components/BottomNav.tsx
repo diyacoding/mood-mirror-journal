@@ -19,7 +19,7 @@ const items: { key: Screen; label: string; icon: any }[] = [
 export const BottomNav = ({ active, onChange }: Props) => {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 flex justify-center pb-[env(safe-area-inset-bottom)] pointer-events-none">
-      <div className="pointer-events-auto mx-3 mb-3 w-full max-w-md rounded-full border border-border bg-card/85 backdrop-blur-xl shadow-soft">
+      <div className="pointer-events-auto mx-3 mb-4 w-full max-w-md rounded-full glass-strong shadow-glow">
         <ul className="flex items-center justify-between px-2 py-2">
           {items.map(({ key, label, icon: Icon }) => {
             const isActive = active === key;
@@ -37,18 +37,18 @@ export const BottomNav = ({ active, onChange }: Props) => {
                     className={cn(
                       "flex items-center justify-center rounded-full transition-smooth",
                       isCenter
-                        ? "h-12 w-12 -mt-6 gradient-sky text-primary-foreground shadow-glow"
+                        ? "h-14 w-14 -mt-7 gradient-primary text-primary-foreground shadow-glow ring-2 ring-accent/40"
                         : "h-9 w-9",
-                      !isCenter && isActive && "bg-primary/10 text-primary",
-                      !isCenter && !isActive && "text-muted-foreground group-hover:text-foreground"
+                      !isCenter && isActive && "bg-accent/15 text-accent ring-glow",
+                      !isCenter && !isActive && "text-muted-foreground group-hover:text-accent"
                     )}
                   >
                     <Icon className={cn(isCenter ? "h-6 w-6" : "h-5 w-5")} />
                   </span>
                   <span
                     className={cn(
-                      "text-[10px] font-medium",
-                      isActive ? "text-primary" : "text-muted-foreground"
+                      "text-[10px] font-medium tracking-wider uppercase",
+                      isActive ? "text-accent" : "text-muted-foreground"
                     )}
                   >
                     {label}
