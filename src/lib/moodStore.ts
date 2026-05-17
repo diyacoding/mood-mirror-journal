@@ -78,15 +78,3 @@ export const moodScore = (mood: string) => {
 
   return scores[mood] ?? 3;
 };
-export const moodScore = (mood: string) => {
-  const scores: Record<string, number> = {
-    happy: 5,
-    calm: 4,
-    neutral: 3,
-    anxious: 2,
-    stressed: 1,
-    sad: 1,
-  };
-
-  return scores[mood] ?? 3;
-};
