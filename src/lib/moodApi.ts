@@ -1,4 +1,5 @@
 // Firestore is the single source of truth for all mood data.
+// All entries are scoped to the signed-in user via `userId`.
 
 import {
   addDoc,
@@ -9,8 +10,9 @@ import {
   orderBy,
   query,
   Timestamp,
+  where,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { auth, db } from "./firebase";
 import type { MoodEntry } from "./moodTypes";
 
 export const MOOD_COLLECTION = "mood_entries";
@@ -22,7 +24,7 @@ export type NewMoodEntry = Omit<MoodEntry, "id" | "createdAt" | "date"> & {
   createdAt?: number;
 };
 
-export const todayKey = () => { 
+export const todayKey = () => {
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -31,7 +33,10 @@ export const todayKey = () => {
 };
 
 export async function addMoodEntry(entry: NewMoodEntry): Promise<string> {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Not signed in");
   const payload = {
+    userId: uid,
     mood: entry.mood,
     intensity: entry.intensity,
     note: entry.note ?? "",
@@ -54,7 +59,13 @@ export function subscribeMoodEntries(
   cb: (entries: MoodEntry[]) => void,
   onError?: (e: Error) => void,
 ): () => void {
-  const q = query(col(), orderBy("createdAt", "desc"));
+  const uid = auth.currentUser?.uid;
+  if (!uid) {
+    cb([]);
+    return () => {};
+  }
+  // Filter to current user. orderBy by createdAt on client to avoid composite index requirement.
+  const q = query(col(), where("userId", "==", uid));
   return onSnapshot(
     q,
     (snap) => {
@@ -72,10 +83,9 @@ export function subscribeMoodEntries(
           createdAt: data.createdAt ?? Date.now(),
         };
       });
+      list.sort((a, b) => b.createdAt - a.createdAt);
       cb(list);
     },
     (err) => onError?.(err),
   );
 }
-
-export { todayKey };
