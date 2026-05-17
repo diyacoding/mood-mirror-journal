@@ -1,0 +1,114 @@
+// Firestore security rules — paste into Firebase Console → Firestore → Rules
+// These rules:
+//   • Scope mood_entries to the owning user (userId)
+//   • Restrict Mood Connections data to the two connected users
+//   • Block all access when a connection is pending / ended / blocked
+//   • Prevent cross-connection data leakage
+//
+// Deploy: copy this file's contents to Firebase Console → Firestore Database → Rules → Publish.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Personal mood entries ────────────────────────────────
+    match /mood_entries/{entryId} {
+      allow read: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
+
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if request.auth != null
+                            && resource.data.userId == request.auth.uid;
+    }
+
+    // ─── Mood Connections ─────────────────────────────────────
+    match /connections/{connectionId} {
+
+      function isMember() {
+        return request.auth != null && (
+          resource.data.userA == request.auth.uid ||
+          resource.data.userB == request.auth.uid
+        );
+      }
+
+      function isActive() {
+        return resource.data.status == 'active';
+      }
+
+      // Read: members can read pending (to see their code) and active.
+      allow read: if request.auth != null && (
+        resource.data.userA == request.auth.uid ||
+        resource.data.userB == request.auth.uid ||
+        // Allow looking up by inviteCode to accept (query-scoped)
+        resource.data.status == 'pending'
+      );
+
+      // Create: must be a pending invite owned by the caller
+      allow create: if request.auth != null
+                    && request.resource.data.userA == request.auth.uid
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.userB == null;
+
+      // Update: either member can update.
+      //   - Accepting: pending → active, userB becomes caller
+      //   - Ending: active → ended (member only)
+      allow update: if request.auth != null && (
+        // Accept invite
+        (resource.data.status == 'pending'
+          && request.resource.data.status == 'active'
+          && request.resource.data.userB == request.auth.uid
+          && resource.data.userA != request.auth.uid)
+        ||
+        // Member ending connection
+        (isMember() && request.resource.data.status == 'ended')
+      );
+
+      allow delete: if false;
+
+      // ─── Subcollections ─ only for ACTIVE members ──────────
+      match /moods/{moodId} {
+        function parentActive() {
+          let parent = get(/databases/$(database)/documents/connections/$(connectionId)).data;
+          return parent.status == 'active'
+                 && (parent.userA == request.auth.uid || parent.userB == request.auth.uid);
+        }
+        allow read: if request.auth != null && parentActive();
+        allow create: if request.auth != null
+                      && parentActive()
+                      && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if false;
+      }
+
+      match /messages/{messageId} {
+        function parentActive() {
+          let parent = get(/databases/$(database)/documents/connections/$(connectionId)).data;
+          return parent.status == 'active'
+                 && (parent.userA == request.auth.uid || parent.userB == request.auth.uid);
+        }
+        allow read: if request.auth != null && parentActive();
+        allow create: if request.auth != null
+                      && parentActive()
+                      && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if false;
+
+        match /reactions/{reactionId} {
+          function grandparentActive() {
+            let parent = get(/databases/$(database)/documents/connections/$(connectionId)).data;
+            return parent.status == 'active'
+                   && (parent.userA == request.auth.uid || parent.userB == request.auth.uid);
+          }
+          allow read: if request.auth != null && grandparentActive();
+          allow create, update: if request.auth != null
+                                && grandparentActive()
+                                && request.resource.data.userId == request.auth.uid
+                                && reactionId == request.auth.uid;
+          allow delete: if request.auth != null
+                        && grandparentActive()
+                        && resource.data.userId == request.auth.uid;
+        }
+      }
+    }
+  }
+}

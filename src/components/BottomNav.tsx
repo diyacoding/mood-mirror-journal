@@ -1,7 +1,7 @@
-import { Home, BarChart3, Clock, Settings as SettingsIcon, Camera } from "lucide-react";
+import { Home, BarChart3, Settings as SettingsIcon, Camera, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type Screen = "home" | "log" | "scan" | "history" | "insights" | "settings";
+export type Screen = "home" | "log" | "scan" | "history" | "insights" | "settings" | "connections";
 
 interface Props {
   active: Screen;
@@ -10,9 +10,9 @@ interface Props {
 
 const items: { key: Screen; label: string; icon: any }[] = [
   { key: "home", label: "Home", icon: Home },
-  { key: "history", label: "Timeline", icon: Clock },
-  { key: "scan", label: "Scan", icon: Camera },
   { key: "insights", label: "Insights", icon: BarChart3 },
+  { key: "scan", label: "Scan", icon: Camera },
+  { key: "connections", label: "Connect", icon: Users },
   { key: "settings", label: "Settings", icon: SettingsIcon },
 ];
 
