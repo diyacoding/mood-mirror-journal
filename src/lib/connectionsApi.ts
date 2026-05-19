@@ -16,7 +16,7 @@ import {
   Timestamp,
   serverTimestamp,
 } from "firebase/firestore";
-import { ref as storageRef, uploadString, getDownloadURL } from "firebase/storage";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
 import type {
   Connection,
@@ -171,20 +171,49 @@ export async function sendTextMessage(
   });
 }
 
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(",");
+  if (!base64) throw new Error("Invalid image data");
+  const mimeMatch = /data:([^;]+);base64/.exec(header);
+  const mime = mimeMatch?.[1] || "image/png";
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 export async function sendDrawingMessage(
   connectionId: string,
   uid: string,
   dataUrl: string,
 ): Promise<void> {
-  // Upload to Storage: connections/{cid}/{uid}-{ts}.png
-  const path = `connections/${connectionId}/${uid}-${Date.now()}.png`;
+  if (!uid) throw new Error("Not authenticated");
+  if (!dataUrl?.startsWith("data:image/")) throw new Error("Invalid drawing payload");
+
+  const blob = dataUrlToBlob(dataUrl);
+  if (!(blob instanceof Blob) || blob.size === 0) throw new Error("Empty drawing");
+  if (blob.size > 2 * 1024 * 1024) throw new Error("Drawing too large (max 2MB)");
+
+  // Path must match Storage rules: drawings/{userId}/{filename}.png
+  const path = `drawings/${uid}/${connectionId}-${Date.now()}.png`;
   const ref = storageRef(storage, path);
-  await uploadString(ref, dataUrl, "data_url");
-  const drawingUrl = await getDownloadURL(ref);
+
+  let drawingUrl: string;
+  try {
+    await uploadBytes(ref, blob, { contentType: "image/png" });
+    drawingUrl = await getDownloadURL(ref);
+  } catch (err: any) {
+    const code = err?.code || "storage/unknown";
+    const message = err?.message || String(err);
+    console.error("[sendDrawingMessage] Storage upload failed", { code, message, path });
+    throw new Error(`Drawing upload failed (${code}): ${message}`);
+  }
+
   await addDoc(messagesRef(connectionId), {
     senderId: uid,
     type: "drawing" as ConnectionMessageType,
     drawingUrl,
+    drawingPath: path,
     createdAt: Date.now(),
     serverCreatedAt: serverTimestamp(),
   });

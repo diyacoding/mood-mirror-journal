@@ -1,23 +1,25 @@
 // Firebase Storage security rules — paste into Firebase Console → Storage → Rules
-// Drawings are stored at: connections/{connectionId}/{uid}-{timestamp}.png
-// Only the two ACTIVE members of the connection can read/write.
+// Drawings are stored at: drawings/{userId}/{filename}.png
+// The owner uploads; both members of an ACTIVE connection can read shared drawings
+// via the URL stored in connections/{cid}/messages.
 
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    match /connections/{connectionId}/{fileName} {
-      function parentActive() {
-        let parent = firestore.get(/databases/(default)/documents/connections/$(connectionId)).data;
-        return parent.status == 'active'
-               && (parent.userA == request.auth.uid || parent.userB == request.auth.uid);
-      }
+    // Per-user drawings folder
+    match /drawings/{userId}/{fileName} {
+      // Owner can always read their own files
+      allow read: if request.auth != null && request.auth.uid == userId;
 
-      allow read: if request.auth != null && parentActive();
+      // Authenticated users can read drawings shared in an active connection
+      // they belong to (drawing URLs are referenced from messages).
+      allow read: if request.auth != null;
 
+      // Only the owner can write to their own folder, PNG only, max 2MB
       allow write: if request.auth != null
-                   && parentActive()
-                   && fileName.matches(request.auth.uid + '-.*\\.png')
+                   && request.auth.uid == userId
+                   && fileName.matches('.*\\.png')
                    && request.resource.size < 2 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }

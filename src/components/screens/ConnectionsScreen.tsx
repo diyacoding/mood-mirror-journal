@@ -114,7 +114,9 @@ export const ConnectionsScreen = ({ user }: Props) => {
       await sendDrawingMessage(cid, user.uid, dataUrl);
       toast.success("Drawing sent");
     } catch (e: any) {
-      toast.error("Upload failed");
+      console.error("Drawing send failed", e);
+      toast.error(e?.message || "Upload failed");
+      throw e;
     }
   };
 
