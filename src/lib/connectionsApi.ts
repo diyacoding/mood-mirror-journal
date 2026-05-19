@@ -16,7 +16,7 @@ import {
   Timestamp,
   serverTimestamp,
 } from "firebase/firestore";
-import { ref as storageRef, uploadString, getDownloadURL } from "firebase/storage";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
 import type {
   Connection,
