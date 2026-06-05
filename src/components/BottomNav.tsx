@@ -14,6 +14,7 @@ const items: { key: Screen; label: string; icon: any }[] = [
   { key: "scan", label: "Scan", icon: Camera },
   { key: "connections", label: "Connect", icon: Users },
   { key: "insights", label: "Insights", icon: BarChart3 },
+  { key: "settings", label: "Settings", icon: SettingsIcon },
 ];
 
 export const BottomNav = ({ active, onChange }: Props) => {
