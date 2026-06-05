@@ -91,7 +91,13 @@ service cloud.firestore {
         allow create: if request.auth != null
                       && parentActive()
                       && request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if false;
+        // Allow members to mark a letter as opened. Sender + content cannot change.
+        allow update: if request.auth != null
+                      && parentActive()
+                      && request.resource.data.senderId == resource.data.senderId
+                      && request.resource.data.type == resource.data.type
+                      && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if false;
 
         match /reactions/{reactionId} {
           function grandparentActive() {
@@ -108,6 +114,34 @@ service cloud.firestore {
                         && grandparentActive()
                         && resource.data.userId == request.auth.uid;
         }
+      }
+    }
+
+    // ─── Pet Growth ───────────────────────────────────────────
+    // Owner doc id is either "u_{uid}" (personal) or "c_{cid}" (shared).
+    // `members` array on the doc lists which uids may read/write.
+    match /pets/{ownerKey} {
+      function isMember() {
+        return request.auth != null
+               && resource.data.members.hasAny([request.auth.uid]);
+      }
+      function newIsMember() {
+        return request.auth != null
+               && request.resource.data.members.hasAny([request.auth.uid]);
+      }
+      allow read: if isMember();
+      allow create: if newIsMember();
+      allow update: if isMember() && newIsMember();
+      allow delete: if false;
+
+      match /items/{itemId} {
+        function parentMember() {
+          let parent = get(/databases/$(database)/documents/pets/$(ownerKey)).data;
+          return request.auth != null && parent.members.hasAny([request.auth.uid]);
+        }
+        allow read: if parentMember();
+        allow create, update: if parentMember();
+        allow delete: if parentMember();
       }
     }
   }
