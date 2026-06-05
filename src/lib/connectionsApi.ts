@@ -166,8 +166,20 @@ export async function sendTextMessage(
     senderId: uid,
     type: "text" as ConnectionMessageType,
     content,
+    opened: false,
+    openedAt: null,
     createdAt: Date.now(),
     serverCreatedAt: serverTimestamp(),
+  });
+}
+
+export async function markMessageOpened(
+  connectionId: string,
+  messageId: string,
+): Promise<void> {
+  await updateDoc(doc(db, CONNECTIONS, connectionId, "messages", messageId), {
+    opened: true,
+    openedAt: Date.now(),
   });
 }
 
@@ -214,6 +226,8 @@ export async function sendDrawingMessage(
     type: "drawing" as ConnectionMessageType,
     drawingUrl,
     drawingPath: path,
+    opened: false,
+    openedAt: null,
     createdAt: Date.now(),
     serverCreatedAt: serverTimestamp(),
   });
