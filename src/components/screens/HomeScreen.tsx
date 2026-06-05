@@ -28,26 +28,23 @@ export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) 
       {/* Ambient glow */}
       <div className="absolute -top-20 -right-24 w-72 h-72 rounded-full gradient-glow blur-3xl pointer-events-none" />
 
-      <header className="flex items-center justify-between relative">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-accent/80">{format(new Date(), "EEEE · MMM d")}</p>
-          <h1 className="font-display text-2xl mt-2 text-glow">
-            {todayMood ? `${todayMood.label} ${todayMood.emoji}` : "Reflect today"}
-          </h1>
-        </div>
-        <img src={logo} alt="Mood Mirror" className="w-14 h-14 object-contain animate-glow-pulse" />
+      <header className="relative">
+        <p className="text-[11px] uppercase tracking-[0.25em] text-accent/80">{format(new Date(), "EEEE · MMM d")}</p>
+        <h1 className="font-display text-2xl mt-2 text-glow">
+          {todayMood ? `${todayMood.label} ${todayMood.emoji}` : "Reflect today"}
+        </h1>
       </header>
-<div className="flex flex-col items-center mb-8">
-  <img
-    src={logo}
-    alt="Mood Mirror"
-    className="w-56 mb-4 drop-shadow-[0_0_25px_rgba(168,85,247,0.5)]"
-  />
-
-  <p className="text-purple-200/70 text-center text-sm">
-    Reflect. Track. Understand yourself.
-  </p>
-</div>
+      <div className="flex flex-col items-center mb-2">
+        <img
+          src={logo}
+          alt="Mood Mirror"
+          className="w-56 mb-4 drop-shadow-[0_0_25px_rgba(168,85,247,0.55)]"
+          style={{ mixBlendMode: "screen", background: "transparent" }}
+        />
+        <p className="text-purple-200/70 text-center text-sm">
+          Reflect. Track. Understand yourself.
+        </p>
+      </div>
       {/* Streak — luxe glass card */}
       <div className="relative rounded-3xl glass-strong p-6 shadow-glow overflow-hidden">
         <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full gradient-glow blur-2xl" />

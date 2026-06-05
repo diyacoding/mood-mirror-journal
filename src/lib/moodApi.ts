@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import type { MoodEntry } from "./moodTypes";
+import { awardPointsForMood } from "./petApi";
 
 export const MOOD_COLLECTION = "mood_entries";
 
@@ -48,6 +49,8 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<string> {
     serverCreatedAt: Timestamp.now(),
   };
   const ref = await addDoc(col(), payload);
+  // Pet Growth: +10 points per mood entry. Non-blocking; failure must not break logging.
+  awardPointsForMood(uid, 10).catch((e) => console.warn("[pet] award failed", e));
   return ref.id;
 }
 

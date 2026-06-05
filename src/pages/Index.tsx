@@ -9,6 +9,7 @@ import { HistoryScreen } from "@/components/screens/HistoryScreen";
 import { InsightsScreen } from "@/components/screens/InsightsScreen";
 import { SettingsScreen } from "@/components/screens/SettingsScreen";
 import { ConnectionsScreen } from "@/components/screens/ConnectionsScreen";
+import { PetScreen } from "@/components/screens/PetScreen";
 import { useMoodEntries } from "@/hooks/useMoodEntries";
 import { useAuth } from "@/hooks/useAuth";
 import type { MoodKey } from "@/lib/moodTypes";
@@ -78,6 +79,7 @@ const Index = () => {
         {screen === "history" && <HistoryScreen entries={entries} loading={loading} />}
         {screen === "insights" && <InsightsScreen entries={entries} />}
         {screen === "connections" && <ConnectionsScreen user={user} />}
+        {screen === "pet" && <PetScreen user={user} />}
         {screen === "settings" && <SettingsScreen entries={entries} />}
 
         <BottomNav active={screen} onChange={setScreen} />

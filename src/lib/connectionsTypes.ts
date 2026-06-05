@@ -30,6 +30,8 @@ export interface ConnectionMessage {
   content?: string;
   drawingUrl?: string;
   createdAt: number;
+  opened?: boolean;
+  openedAt?: number | null;
 }
 
 export interface ConnectionReaction {
