@@ -57,6 +57,10 @@ export const InsightsScreen = ({ entries }: Props) => {
         </p>
       </header>
 
+      <ReflectionScoreCard trend={reflectionTrend} />
+      <MoodPredictionCard prediction={prediction} />
+      <WeeklyReportSection report={weeklyReport} />
+
       <div className="space-y-2">
         {insights.map((ins, i) => (
           <div key={i} className="rounded-2xl glass p-4 flex gap-3 items-start">
