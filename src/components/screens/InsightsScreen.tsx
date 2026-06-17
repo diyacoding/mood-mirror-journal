@@ -6,11 +6,22 @@ import {
 } from "recharts";
 import { MOODS, moodScore, type MoodEntry } from "@/lib/moodTypes";
 import { generateInsights } from "@/lib/moodAnalytics";
+import {
+  weeklyReflectionTrend,
+  predictTomorrowMood,
+  generateWeeklyReport,
+} from "@/lib/reflectionAnalytics";
+import { ReflectionScoreCard } from "@/components/insights/ReflectionScoreCard";
+import { MoodPredictionCard } from "@/components/insights/MoodPredictionCard";
+import { WeeklyReportSection } from "@/components/insights/WeeklyReportSection";
 
 interface Props { entries: MoodEntry[] }
 
 export const InsightsScreen = ({ entries }: Props) => {
   const insights = useMemo(() => generateInsights(entries), [entries]);
+  const reflectionTrend = useMemo(() => weeklyReflectionTrend(entries), [entries]);
+  const prediction = useMemo(() => predictTomorrowMood(entries), [entries]);
+  const weeklyReport = useMemo(() => generateWeeklyReport(entries), [entries]);
 
   const last30 = useMemo(() => {
     const now = new Date();
