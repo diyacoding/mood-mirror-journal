@@ -74,6 +74,7 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
   const [color, setColor] = useState(PALETTE[0].hex);
   const [eraser, setEraser] = useState(false);
   const [size, setSize] = useState(8);
+  const [brushStyle, setBrushStyle] = useState<BrushStyleKey>("soft");
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -84,21 +85,26 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
     ctx.lineJoin = "round";
     ctx.strokeStyle = color;
     ctx.lineWidth = size;
+    applyBrushStyle(ctx, brushStyle, color);
   }, []);
 
-  // Update strokeStyle/size when tool/color/size changes without clearing canvas
+  // Update strokeStyle/size/brushStyle when tool/color/size/style changes without clearing canvas
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
     if (eraser) {
       ctx.globalCompositeOperation = "destination-out";
       ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
     } else {
       ctx.globalCompositeOperation = "source-over";
       ctx.strokeStyle = color;
+      applyBrushStyle(ctx, brushStyle, color);
     }
     ctx.lineWidth = size;
-  }, [color, eraser, size]);
+  }, [color, eraser, size, brushStyle]);
 
   const pos = (e: React.PointerEvent) => {
     const c = canvasRef.current!;
@@ -113,6 +119,10 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
     drawing.current = true;
     const ctx = canvasRef.current!.getContext("2d")!;
     const { x, y } = pos(e);
+    if (!eraser) {
+      applyBrushStyle(ctx, brushStyle, color);
+      ctx.strokeStyle = color;
+    }
     ctx.beginPath();
     ctx.moveTo(x, y);
   };
@@ -141,9 +151,13 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
     if (eraser) {
       ctx.globalCompositeOperation = "destination-out";
       ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
     } else {
       ctx.globalCompositeOperation = "source-over";
       ctx.strokeStyle = color;
+      applyBrushStyle(ctx, brushStyle, color);
     }
     ctx.lineWidth = size;
   };
