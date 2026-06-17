@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Eraser, Paintbrush, Send, X, Minus, Circle, Dot } from "lucide-react";
+import { Eraser, Paintbrush, Send, X, Minus, Circle, Dot, Sparkles, Wind, Zap, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -26,6 +26,46 @@ const SIZES = [
   { label: "M", value: 8, icon: Minus },
   { label: "L", value: 16, icon: Circle },
 ];
+
+type BrushStyleKey = "soft" | "sad" | "peaceful" | "energetic";
+
+const BRUSH_STYLES: { key: BrushStyleKey; label: string; icon: typeof Heart }[] = [
+  { key: "soft", label: "Soft", icon: Heart },
+  { key: "sad", label: "Gentle", icon: Wind },
+  { key: "peaceful", label: "Peaceful", icon: Sparkles },
+  { key: "energetic", label: "Energetic", icon: Zap },
+];
+
+function applyBrushStyle(ctx: CanvasRenderingContext2D, style: BrushStyleKey, color: string) {
+  // Reset all style-related canvas properties first
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = "transparent";
+
+  switch (style) {
+    case "soft":
+      // Smooth gentle strokes — default behavior
+      ctx.globalAlpha = 0.85;
+      break;
+    case "sad":
+      // Lower opacity, slight transparency
+      ctx.globalAlpha = 0.45;
+      break;
+    case "peaceful":
+      // Light airy strokes, soft glow feel
+      ctx.globalAlpha = 0.65;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = color;
+      break;
+    case "energetic":
+      // Stronger opacity, dynamic feel
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = color;
+      break;
+  }
+}
+
 
 export const DrawingCanvas = ({ onSend, onClose }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
