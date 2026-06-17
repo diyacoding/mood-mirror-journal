@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Eraser, Paintbrush, Send, X, Minus, Circle, Dot } from "lucide-react";
+import { Eraser, Paintbrush, Send, X, Minus, Circle, Dot, Sparkles, Wind, Zap, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -27,6 +27,46 @@ const SIZES = [
   { label: "L", value: 16, icon: Circle },
 ];
 
+type BrushStyleKey = "soft" | "sad" | "peaceful" | "energetic";
+
+const BRUSH_STYLES: { key: BrushStyleKey; label: string; icon: typeof Heart }[] = [
+  { key: "soft", label: "Soft", icon: Heart },
+  { key: "sad", label: "Gentle", icon: Wind },
+  { key: "peaceful", label: "Peaceful", icon: Sparkles },
+  { key: "energetic", label: "Energetic", icon: Zap },
+];
+
+function applyBrushStyle(ctx: CanvasRenderingContext2D, style: BrushStyleKey, color: string) {
+  // Reset all style-related canvas properties first
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = "transparent";
+
+  switch (style) {
+    case "soft":
+      // Smooth gentle strokes — default behavior
+      ctx.globalAlpha = 0.85;
+      break;
+    case "sad":
+      // Lower opacity, slight transparency
+      ctx.globalAlpha = 0.45;
+      break;
+    case "peaceful":
+      // Light airy strokes, soft glow feel
+      ctx.globalAlpha = 0.65;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = color;
+      break;
+    case "energetic":
+      // Stronger opacity, dynamic feel
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = color;
+      break;
+  }
+}
+
+
 export const DrawingCanvas = ({ onSend, onClose }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
@@ -34,6 +74,7 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
   const [color, setColor] = useState(PALETTE[0].hex);
   const [eraser, setEraser] = useState(false);
   const [size, setSize] = useState(8);
+  const [brushStyle, setBrushStyle] = useState<BrushStyleKey>("soft");
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -44,21 +85,26 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
     ctx.lineJoin = "round";
     ctx.strokeStyle = color;
     ctx.lineWidth = size;
+    applyBrushStyle(ctx, brushStyle, color);
   }, []);
 
-  // Update strokeStyle/size when tool/color/size changes without clearing canvas
+  // Update strokeStyle/size/brushStyle when tool/color/size/style changes without clearing canvas
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
     if (eraser) {
       ctx.globalCompositeOperation = "destination-out";
       ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
     } else {
       ctx.globalCompositeOperation = "source-over";
       ctx.strokeStyle = color;
+      applyBrushStyle(ctx, brushStyle, color);
     }
     ctx.lineWidth = size;
-  }, [color, eraser, size]);
+  }, [color, eraser, size, brushStyle]);
 
   const pos = (e: React.PointerEvent) => {
     const c = canvasRef.current!;
@@ -73,6 +119,10 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
     drawing.current = true;
     const ctx = canvasRef.current!.getContext("2d")!;
     const { x, y } = pos(e);
+    if (!eraser) {
+      applyBrushStyle(ctx, brushStyle, color);
+      ctx.strokeStyle = color;
+    }
     ctx.beginPath();
     ctx.moveTo(x, y);
   };
@@ -101,9 +151,13 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
     if (eraser) {
       ctx.globalCompositeOperation = "destination-out";
       ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
     } else {
       ctx.globalCompositeOperation = "source-over";
       ctx.strokeStyle = color;
+      applyBrushStyle(ctx, brushStyle, color);
     }
     ctx.lineWidth = size;
   };
@@ -149,6 +203,33 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
               style={{ backgroundColor: c.hex }}
             />
           ))}
+        </div>
+
+        {/* Brush Style Selector */}
+        <div className="flex gap-2 flex-wrap justify-center">
+          {BRUSH_STYLES.map((s) => {
+            const Icon = s.icon;
+            const active = brushStyle === s.key && !eraser;
+            return (
+              <button
+                key={s.key}
+                onClick={() => {
+                  setBrushStyle(s.key);
+                  setEraser(false);
+                }}
+                className={cn(
+                  "h-8 px-3 rounded-full text-xs flex items-center gap-1.5 transition-smooth border",
+                  active
+                    ? "border-white/40 bg-white/10 text-foreground shadow-glow"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+                title={s.label}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {s.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Canvas */}
