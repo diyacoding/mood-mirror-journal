@@ -205,6 +205,33 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
           ))}
         </div>
 
+        {/* Brush Style Selector */}
+        <div className="flex gap-2 flex-wrap justify-center">
+          {BRUSH_STYLES.map((s) => {
+            const Icon = s.icon;
+            const active = brushStyle === s.key && !eraser;
+            return (
+              <button
+                key={s.key}
+                onClick={() => {
+                  setBrushStyle(s.key);
+                  setEraser(false);
+                }}
+                className={cn(
+                  "h-8 px-3 rounded-full text-xs flex items-center gap-1.5 transition-smooth border",
+                  active
+                    ? "border-white/40 bg-white/10 text-foreground shadow-glow"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+                title={s.label}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Canvas */}
         <canvas
           ref={canvasRef}
