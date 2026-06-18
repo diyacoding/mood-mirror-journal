@@ -16,13 +16,17 @@ interface Props {
   onSaved: () => void;
 }
 
+const INTENSITY_LABEL = ["Very Low", "Very Low", "Low", "Low", "Moderate", "Moderate", "High", "High", "Very High", "Very High"];
+
 export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
   const [mood, setMood] = useState<MoodKey | undefined>(initialMood);
   const [intensity, setIntensity] = useState(5);
   const [note, setNote] = useState("");
-  const [sleep, setSleep] = useState<string>("");
-  const [exercise, setExercise] = useState<string>("");
-  const [screen, setScreen] = useState<string>("");
+  const [sleepH, setSleepH] = useState<string>("");
+  const [sleepM, setSleepM] = useState<string>("");
+  const [exH, setExH] = useState<string>("");
+  const [exM, setExM] = useState<string>("");
+  const [screenH, setScreenH] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -32,16 +36,19 @@ export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
     }
     setSaving(true);
     try {
+      const sleepHours = sleepH || sleepM
+        ? (Number(sleepH || 0) + Number(sleepM || 0) / 60)
+        : undefined;
+      const exerciseMinutes = exH || exM
+        ? (Number(exH || 0) * 60 + Number(exM || 0))
+        : undefined;
+      const screenTimeHours = screenH ? Number(screenH) : undefined;
       await addMoodEntry({
         mood,
         intensity,
         note: note.trim() || undefined,
         source: "manual",
-        behaviors: {
-          sleepHours: sleep ? Number(sleep) : undefined,
-          exerciseMinutes: exercise ? Number(exercise) : undefined,
-          screenTimeHours: screen ? Number(screen) : undefined,
-        },
+        behaviors: { sleepHours, exerciseMinutes, screenTimeHours },
       });
       toast.success("Mood saved ✨");
       onSaved();
