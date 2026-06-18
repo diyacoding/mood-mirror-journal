@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { moodMeta, type MoodKey } from "@/lib/moodTypes";
 import {
   detectMoodFromVideo,
@@ -10,6 +13,8 @@ import {
 import { MoodPicker } from "@/components/MoodPicker";
 import { addMoodEntry } from "@/lib/moodApi";
 import { toast } from "sonner";
+
+const INTENSITY_LABEL = ["Very Low", "Very Low", "Low", "Low", "Moderate", "Moderate", "High", "High", "Very High", "Very High"];
 
 interface Props {
   onBack: () => void;
