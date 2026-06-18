@@ -72,6 +72,8 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
       const r = await detectMoodFromVideo(videoRef.current);
       setResult(r);
       setOverride(r.faceDetected ? r.mood : undefined);
+      setIntensity(Math.max(1, Math.min(10, Math.round((r.confidence ?? 0.5) * 10))));
+      setNote("");
     } catch {
       toast.error("Scan failed");
     } finally {
@@ -79,7 +81,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
     }
   };
 
-  const reset = () => { setResult(null); setOverride(undefined); };
+  const reset = () => { setResult(null); setOverride(undefined); setNote(""); setIntensity(5); };
 
   const confirm = async () => {
     const final = override ?? result?.mood;
@@ -91,7 +93,8 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
     try {
       await addMoodEntry({
         mood: final,
-        intensity: Math.max(1, Math.round((result.confidence ?? 0.5) * 10)),
+        intensity,
+        note: note.trim() || undefined,
         confidence: result.confidence,
         source: "scan",
       });
