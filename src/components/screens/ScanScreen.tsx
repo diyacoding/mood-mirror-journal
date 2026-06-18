@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { moodMeta, type MoodKey } from "@/lib/moodTypes";
 import {
   detectMoodFromVideo,
@@ -10,6 +13,8 @@ import {
 import { MoodPicker } from "@/components/MoodPicker";
 import { addMoodEntry } from "@/lib/moodApi";
 import { toast } from "sonner";
+
+const INTENSITY_LABEL = ["Very Low", "Very Low", "Low", "Low", "Moderate", "Moderate", "High", "High", "Very High", "Very High"];
 
 interface Props {
   onBack: () => void;
@@ -25,6 +30,8 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<DetectionResult | null>(null);
   const [override, setOverride] = useState<MoodKey | undefined>();
+  const [intensity, setIntensity] = useState(5);
+  const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -65,6 +72,8 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
       const r = await detectMoodFromVideo(videoRef.current);
       setResult(r);
       setOverride(r.faceDetected ? r.mood : undefined);
+      setIntensity(Math.max(1, Math.min(10, Math.round((r.confidence ?? 0.5) * 10))));
+      setNote("");
     } catch {
       toast.error("Scan failed");
     } finally {
@@ -72,7 +81,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
     }
   };
 
-  const reset = () => { setResult(null); setOverride(undefined); };
+  const reset = () => { setResult(null); setOverride(undefined); setNote(""); setIntensity(5); };
 
   const confirm = async () => {
     const final = override ?? result?.mood;
@@ -84,7 +93,8 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
     try {
       await addMoodEntry({
         mood: final,
-        intensity: Math.max(1, Math.round((result.confidence ?? 0.5) * 10)),
+        intensity,
+        note: note.trim() || undefined,
         confidence: result.confidence,
         source: "scan",
       });
@@ -145,6 +155,23 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
             <div className="space-y-2">
               <p className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Adjust if needed</p>
               <MoodPicker value={override} onChange={setOverride} />
+            </div>
+          )}
+
+          {detected && (
+            <div className="glass rounded-3xl p-5 space-y-3">
+              <div className="flex justify-between items-baseline">
+                <Label className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Intensity</Label>
+                <span className="text-sm text-accent">{INTENSITY_LABEL[intensity - 1]} · {intensity}/10</span>
+              </div>
+              <Slider value={[intensity]} min={1} max={10} step={1} onValueChange={(v) => setIntensity(v[0])} />
+            </div>
+          )}
+
+          {detected && (
+            <div className="space-y-2">
+              <Label className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Notes (optional)</Label>
+              <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="What's on your mind?" rows={3} className="glass border-accent/20 rounded-2xl" />
             </div>
           )}
 

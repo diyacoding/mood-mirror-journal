@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { User } from "firebase/auth";
-import { format } from "date-fns";
 import { toast } from "sonner";
-import { Sparkles, Gift, Plus, Image as ImageIcon, Wand2 } from "lucide-react";
+import { Sparkles, Gift, Plus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePet } from "@/hooks/usePet";
 import {
@@ -13,11 +12,12 @@ import {
   selectPet,
   addCustomAccessoryToInventory,
 } from "@/lib/petApi";
-import { ACCESSORIES, accessoryMeta } from "@/lib/petTypes";
+import { accessoryMeta } from "@/lib/petTypes";
 import type { AccessoryKey } from "@/lib/petTypes";
 import { PetDisplay } from "@/components/pet/PetDisplay";
 import { PetDrawingCanvas } from "@/components/pet/PetDrawingCanvas";
 import { AccessoryWheel } from "@/components/pet/AccessoryWheel";
+import { EggHatch } from "@/components/pet/EggHatch";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -29,6 +29,8 @@ export const PetScreen = ({ user }: Props) => {
   const [creator, setCreator] = useState(false);
   const [customAccessory, setCustomAccessory] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
+  const [hatching, setHatching] = useState(false);
+  const hatchHandledRef = useRef<string | null>(null);
 
   const points = owner?.points ?? 0;
   const level = Math.floor(points / 100) + 1;
@@ -39,6 +41,20 @@ export const PetScreen = ({ user }: Props) => {
   const needsNew = owner?.pendingNewPet && !currentPet;
   const noPetYet = !currentPet && !loading;
   const shared = owner?.ownerType === "connection";
+
+  // Auto-trigger egg hatch animation whenever a new pet is owed (first mood log,
+  // 100-pt milestones, etc.) and we haven't already handled this particular state.
+  useEffect(() => {
+    if (!owner || loading) return;
+    if (!owner.pendingNewPet || currentPet) return;
+    if (creator || hatching) return;
+    // Use a key that changes every time a new hatch is owed so we re-trigger
+    // for each milestone but not on every render.
+    const hatchKey = `${owner.id}:${owner.milestone100 ?? 0}:${items.length}`;
+    if (hatchHandledRef.current === hatchKey) return;
+    hatchHandledRef.current = hatchKey;
+    setHatching(true);
+  }, [owner, currentPet, loading, creator, hatching, items.length]);
 
   const handleCreate = async (dataUrl: string) => {
     try {
@@ -112,13 +128,13 @@ export const PetScreen = ({ user }: Props) => {
           </div>
         </div>
 
-        {(noPetYet || needsNew) && (
+        {(noPetYet || needsNew) && !hatching && (
           <Button
             onClick={() => setCreator(true)}
             className="w-full rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-12"
           >
             <Plus className="h-4 w-4 mr-1" />
-            {needsNew ? "Design new pet (milestone!)" : "Create your pet"}
+            {needsNew ? "Design new pet (milestone!)" : points === 0 ? "Log a mood to hatch your egg" : "Create your pet"}
           </Button>
         )}
       </div>
@@ -216,6 +232,15 @@ export const PetScreen = ({ user }: Props) => {
           spinsRemaining={mySpins}
           onSpin={handleSpin}
           onClose={() => setWheelOpen(false)}
+        />
+      )}
+      {hatching && (
+        <EggHatch
+          onDone={() => {
+            setHatching(false);
+            setCreator(true);
+            toast.success("Your pet has hatched! 🎉");
+          }}
         />
       )}
     </div>
