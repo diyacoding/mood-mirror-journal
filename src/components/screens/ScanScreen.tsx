@@ -158,6 +158,23 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
             </div>
           )}
 
+          {detected && (
+            <div className="glass rounded-3xl p-5 space-y-3">
+              <div className="flex justify-between items-baseline">
+                <Label className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Intensity</Label>
+                <span className="text-sm text-accent">{INTENSITY_LABEL[intensity - 1]} · {intensity}/10</span>
+              </div>
+              <Slider value={[intensity]} min={1} max={10} step={1} onValueChange={(v) => setIntensity(v[0])} />
+            </div>
+          )}
+
+          {detected && (
+            <div className="space-y-2">
+              <Label className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Notes (optional)</Label>
+              <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="What's on your mind?" rows={3} className="glass border-accent/20 rounded-2xl" />
+            </div>
+          )}
+
           <div className="flex gap-2">
             <Button onClick={reset} variant="outline" className="flex-1 rounded-full glass border-accent/30 h-12">Retake</Button>
             <Button onClick={confirm} disabled={saving || !detected} className="flex-1 rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-12">
