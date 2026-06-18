@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { User } from "firebase/auth";
-import { format } from "date-fns";
 import { toast } from "sonner";
-import { Sparkles, Gift, Plus, Image as ImageIcon, Wand2 } from "lucide-react";
+import { Sparkles, Gift, Plus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePet } from "@/hooks/usePet";
 import {
@@ -13,11 +12,12 @@ import {
   selectPet,
   addCustomAccessoryToInventory,
 } from "@/lib/petApi";
-import { ACCESSORIES, accessoryMeta } from "@/lib/petTypes";
+import { accessoryMeta } from "@/lib/petTypes";
 import type { AccessoryKey } from "@/lib/petTypes";
 import { PetDisplay } from "@/components/pet/PetDisplay";
 import { PetDrawingCanvas } from "@/components/pet/PetDrawingCanvas";
 import { AccessoryWheel } from "@/components/pet/AccessoryWheel";
+import { EggHatch } from "@/components/pet/EggHatch";
 import { cn } from "@/lib/utils";
 
 interface Props {
