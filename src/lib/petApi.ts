@@ -221,6 +221,9 @@ export async function awardPointsForMood(uid: string, amount = 10): Promise<void
       for (const m of info.members) nextSpins[m] = (nextSpins[m] ?? 0) + spinDelta;
     }
 
+    // First mood ever → starter egg should hatch even before 100 pts
+    const firstHatch = before === 0 && after > 0 && !data.currentPetId;
+
     tx.set(
       ref,
       {
@@ -229,7 +232,7 @@ export async function awardPointsForMood(uid: string, amount = 10): Promise<void
         members: data.members,
         points: after,
         currentPetId: data.currentPetId ?? null,
-        pendingNewPet: data.pendingNewPet || newPetDelta > 0,
+        pendingNewPet: data.pendingNewPet || newPetDelta > 0 || firstHatch,
         spinsByUser: nextSpins,
         inventoryByUser: data.inventoryByUser ?? {},
         milestone50: newM50,
