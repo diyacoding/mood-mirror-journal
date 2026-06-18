@@ -29,6 +29,8 @@ export const PetScreen = ({ user }: Props) => {
   const [creator, setCreator] = useState(false);
   const [customAccessory, setCustomAccessory] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
+  const [hatching, setHatching] = useState(false);
+  const hatchHandledRef = useRef<string | null>(null);
 
   const points = owner?.points ?? 0;
   const level = Math.floor(points / 100) + 1;
@@ -39,6 +41,20 @@ export const PetScreen = ({ user }: Props) => {
   const needsNew = owner?.pendingNewPet && !currentPet;
   const noPetYet = !currentPet && !loading;
   const shared = owner?.ownerType === "connection";
+
+  // Auto-trigger egg hatch animation whenever a new pet is owed (first mood log,
+  // 100-pt milestones, etc.) and we haven't already handled this particular state.
+  useEffect(() => {
+    if (!owner || loading) return;
+    if (!owner.pendingNewPet || currentPet) return;
+    if (creator || hatching) return;
+    // Use a key that changes every time a new hatch is owed so we re-trigger
+    // for each milestone but not on every render.
+    const hatchKey = `${owner.id}:${owner.milestone100 ?? 0}:${items.length}`;
+    if (hatchHandledRef.current === hatchKey) return;
+    hatchHandledRef.current = hatchKey;
+    setHatching(true);
+  }, [owner, currentPet, loading, creator, hatching, items.length]);
 
   const handleCreate = async (dataUrl: string) => {
     try {
