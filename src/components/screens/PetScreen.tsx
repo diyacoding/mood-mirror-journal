@@ -234,6 +234,15 @@ export const PetScreen = ({ user }: Props) => {
           onClose={() => setWheelOpen(false)}
         />
       )}
+      {hatching && (
+        <EggHatch
+          onDone={() => {
+            setHatching(false);
+            setCreator(true);
+            toast.success("Your pet has hatched! 🎉");
+          }}
+        />
+      )}
     </div>
   );
 };
