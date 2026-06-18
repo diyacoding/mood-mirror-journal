@@ -128,13 +128,13 @@ export const PetScreen = ({ user }: Props) => {
           </div>
         </div>
 
-        {(noPetYet || needsNew) && (
+        {(noPetYet || needsNew) && !hatching && (
           <Button
             onClick={() => setCreator(true)}
             className="w-full rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-12"
           >
             <Plus className="h-4 w-4 mr-1" />
-            {needsNew ? "Design new pet (milestone!)" : "Create your pet"}
+            {needsNew ? "Design new pet (milestone!)" : points === 0 ? "Log a mood to hatch your egg" : "Create your pet"}
           </Button>
         )}
       </div>
