@@ -24,6 +24,7 @@ const Index = () => {
   );
   const [screen, setScreen] = useState<Screen>("home");
   const [prefilledMood, setPrefilledMood] = useState<MoodKey | undefined>();
+  const [petHatchTrigger, setPetHatchTrigger] = useState(0);
   const { user, loading: authLoading } = useAuth();
   const { entries, loading } = useMoodEntries(user?.uid);
   const { owner: petOwner } = usePet(user?.uid ?? null);
@@ -47,6 +48,7 @@ const Index = () => {
 
   const finishMoodSave = (result: MoodSaveResult) => {
     setPrefilledMood(undefined);
+    if (result.petAward.pendingNewPet) setPetHatchTrigger(Date.now());
     setScreen(result.petAward.pendingNewPet ? "pet" : "home");
   };
 
@@ -87,7 +89,7 @@ const Index = () => {
         {screen === "history" && <HistoryScreen entries={entries} loading={loading} />}
         {screen === "insights" && <InsightsScreen entries={entries} petOwner={petOwner} />}
         {screen === "connections" && <ConnectionsScreen user={user} />}
-        {screen === "pet" && <PetScreen user={user} />}
+        {screen === "pet" && <PetScreen user={user} hatchTrigger={petHatchTrigger} />}
         {screen === "settings" && <SettingsScreen entries={entries} />}
 
         <BottomNav active={screen} onChange={setScreen} />

@@ -22,9 +22,10 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   user: User;
+  hatchTrigger?: number;
 }
 
-export const PetScreen = ({ user }: Props) => {
+export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
   const { owner, items, currentPet, loading } = usePet(user.uid);
   const [creator, setCreator] = useState(false);
   const [customAccessory, setCustomAccessory] = useState(false);
@@ -55,6 +56,11 @@ export const PetScreen = ({ user }: Props) => {
     hatchHandledRef.current = hatchKey;
     setHatching(true);
   }, [owner, loading, creator, hatching, items.length]);
+
+  useEffect(() => {
+    if (!hatchTrigger || creator || hatching) return;
+    setHatching(true);
+  }, [hatchTrigger, creator, hatching]);
 
   const handleCreate = async (dataUrl: string) => {
     try {
