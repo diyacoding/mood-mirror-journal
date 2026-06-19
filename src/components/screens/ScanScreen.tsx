@@ -11,14 +11,14 @@ import {
   type DetectionResult,
 } from "@/lib/faceMood";
 import { MoodPicker } from "@/components/MoodPicker";
-import { addMoodEntry } from "@/lib/moodApi";
+import { addMoodEntry, type MoodSaveResult } from "@/lib/moodApi";
 import { toast } from "sonner";
 
 const INTENSITY_LABEL = ["Very Low", "Very Low", "Low", "Low", "Moderate", "Moderate", "High", "High", "Very High", "Very High"];
 
 interface Props {
   onBack: () => void;
-  onConfirm: (m: MoodKey) => void;
+  onConfirm: (result: MoodSaveResult) => void;
 }
 
 export const ScanScreen = ({ onBack, onConfirm }: Props) => {
@@ -91,7 +91,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
     }
     setSaving(true);
     try {
-      await addMoodEntry({
+      const saveResult = await addMoodEntry({
         mood: final,
         intensity,
         note: note.trim() || undefined,
@@ -99,7 +99,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
         source: "scan",
       });
       toast.success("Mood saved ✨");
-      onConfirm(final);
+      onConfirm(saveResult);
     } catch (e) {
       console.error(e);
       toast.error("Save failed");

@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoodPicker } from "@/components/MoodPicker";
 import type { MoodKey } from "@/lib/moodTypes";
-import { addMoodEntry } from "@/lib/moodApi";
+import { addMoodEntry, type MoodSaveResult } from "@/lib/moodApi";
 import { toast } from "sonner";
 
 interface Props {
   initialMood?: MoodKey;
   onBack: () => void;
-  onSaved: () => void;
+  onSaved: (result: MoodSaveResult) => void;
 }
 
 const INTENSITY_LABEL = ["Very Low", "Very Low", "Low", "Low", "Moderate", "Moderate", "High", "High", "Very High", "Very High"];
@@ -43,7 +43,7 @@ export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
         ? (Number(exH || 0) * 60 + Number(exM || 0))
         : undefined;
       const screenTimeHours = screenH ? Number(screenH) : undefined;
-      await addMoodEntry({
+      const result = await addMoodEntry({
         mood,
         intensity,
         note: note.trim() || undefined,
@@ -51,7 +51,7 @@ export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
         behaviors: { sleepHours, exerciseMinutes, screenTimeHours },
       });
       toast.success("Mood saved ✨");
-      onSaved();
+      onSaved(result);
     } catch (e: any) {
       console.error(e);
       toast.error("Failed to save");
