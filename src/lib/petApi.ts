@@ -15,6 +15,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
+import type { Transaction } from "firebase/firestore";
 import { db, auth } from "./firebase";
 import { findMyConnection } from "./connectionsApi";
 import type { AccessoryKey, PetItem, PetOwnerDoc } from "./petTypes";
@@ -25,6 +26,17 @@ const COL = "pets";
 const ownerRef = (key: string) => doc(db, COL, key);
 const itemsCol = (key: string) => collection(db, COL, key, "items");
 const itemRef = (key: string, id: string) => doc(db, COL, key, "items", id);
+
+export interface PetAwardResult {
+  ownerKey: string;
+  pointsBefore: number;
+  pointsAfter: number;
+  pointsAwarded: number;
+  spinDelta: number;
+  newPetDelta: number;
+  firstHatch: boolean;
+  pendingNewPet: boolean;
+}
 
 export const personalKey = (uid: string) => `u_${uid}`;
 export const sharedKey = (cid: string) => `c_${cid}`;
@@ -48,12 +60,25 @@ export async function resolveOwnerKey(uid: string): Promise<{
   return { key: personalKey(uid), type: "user", ownerId: uid, members: [uid] };
 }
 
+export type ResolvedPetOwner = Awaited<ReturnType<typeof resolveOwnerKey>>;
+
+export async function preparePetOwnerDoc(info: ResolvedPetOwner): Promise<void> {
+  await setDoc(
+    ownerRef(info.key),
+    {
+      ownerType: info.type,
+      ownerId: info.ownerId,
+      members: info.members,
+    },
+    { merge: true },
+  );
+}
+
 async function ensureOwnerDoc(uid: string): Promise<PetOwnerDoc> {
   const info = await resolveOwnerKey(uid);
   const ref = ownerRef(info.key);
+  await preparePetOwnerDoc(info);
   const snap = await getDoc(ref);
-  if (snap.exists()) return { id: info.key, ...(snap.data() as any) } as PetOwnerDoc;
-
   const init: Omit<PetOwnerDoc, "id"> = {
     ownerType: info.type,
     ownerId: info.ownerId,
@@ -66,7 +91,8 @@ async function ensureOwnerDoc(uid: string): Promise<PetOwnerDoc> {
     milestone50: 0,
     milestone100: 0,
   };
-  await setDoc(ref, { ...init, serverCreatedAt: serverTimestamp() });
+  if (snap.exists()) return { id: info.key, ...init, ...(snap.data() as any) } as PetOwnerDoc;
+  await setDoc(ref, { ...init, serverCreatedAt: serverTimestamp() }, { merge: true });
   return { id: info.key, ...init };
 }
 
@@ -174,73 +200,85 @@ export async function selectPet(uid: string, petId: string): Promise<void> {
 
 // Award points after a mood log. Fires whenever a mood is added.
 // Crosses milestone thresholds in 50- and 100-point steps.
-export async function awardPointsForMood(uid: string, amount = 10): Promise<void> {
-  const info = await resolveOwnerKey(uid);
+export async function awardResolvedPointsInTransaction(
+  tx: Transaction,
+  info: ResolvedPetOwner,
+  amount = 10,
+): Promise<PetAwardResult> {
   const ref = ownerRef(info.key);
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    let data: PetOwnerDoc;
-    if (!snap.exists()) {
-      data = {
-        id: info.key,
-        ownerType: info.type,
-        ownerId: info.ownerId,
-        members: info.members,
-        points: 0,
-        currentPetId: null,
-        pendingNewPet: false,
-        spinsByUser: Object.fromEntries(info.members.map((m) => [m, 0])),
-        inventoryByUser: Object.fromEntries(info.members.map((m) => [m, []])),
-        milestone50: 0,
-        milestone100: 0,
-      };
-    } else {
-      data = { id: info.key, ...(snap.data() as any) } as PetOwnerDoc;
-      // Heal members in case connection changed
-      for (const m of info.members) {
-        if (!(m in (data.spinsByUser ?? {}))) data.spinsByUser = { ...data.spinsByUser, [m]: 0 };
-        if (!(m in (data.inventoryByUser ?? {}))) data.inventoryByUser = { ...data.inventoryByUser, [m]: [] };
-      }
+  const snap = await tx.get(ref);
+  let data: PetOwnerDoc;
+  if (!snap.exists()) {
+    data = {
+      id: info.key,
+      ownerType: info.type,
+      ownerId: info.ownerId,
+      members: info.members,
+      points: 0,
+      currentPetId: null,
+      pendingNewPet: false,
+      spinsByUser: Object.fromEntries(info.members.map((m) => [m, 0])),
+      inventoryByUser: Object.fromEntries(info.members.map((m) => [m, []])),
+      milestone50: 0,
+      milestone100: 0,
+    };
+  } else {
+    data = { id: info.key, ...(snap.data() as any) } as PetOwnerDoc;
+    for (const m of info.members) {
+      if (!(m in (data.spinsByUser ?? {}))) data.spinsByUser = { ...data.spinsByUser, [m]: 0 };
+      if (!(m in (data.inventoryByUser ?? {}))) data.inventoryByUser = { ...data.inventoryByUser, [m]: [] };
     }
+  }
 
-    const before = data.points ?? 0;
-    const after = before + amount;
+  const before = data.points ?? 0;
+  const after = before + amount;
+  const newM50 = Math.floor(after / 50);
+  const oldM50 = data.milestone50 ?? Math.floor(before / 50);
+  const spinDelta = Math.max(0, newM50 - oldM50);
+  const newM100 = Math.floor(after / 100);
+  const oldM100 = data.milestone100 ?? Math.floor(before / 100);
+  const newPetDelta = Math.max(0, newM100 - oldM100);
+  const nextSpins = { ...(data.spinsByUser ?? {}) };
+  if (spinDelta > 0) {
+    for (const m of info.members) nextSpins[m] = (nextSpins[m] ?? 0) + spinDelta;
+  }
+  const firstHatch = before === 0 && after > 0 && !data.currentPetId;
+  const pendingNewPet = data.pendingNewPet || newPetDelta > 0 || firstHatch;
 
-    // 50-pt milestones
-    const newM50 = Math.floor(after / 50);
-    const oldM50 = data.milestone50 ?? Math.floor(before / 50);
-    const spinDelta = Math.max(0, newM50 - oldM50);
+  tx.set(
+    ref,
+    {
+      ownerType: info.type,
+      ownerId: info.ownerId,
+      members: info.members,
+      points: after,
+      currentPetId: data.currentPetId ?? null,
+      pendingNewPet,
+      spinsByUser: nextSpins,
+      inventoryByUser: data.inventoryByUser ?? Object.fromEntries(info.members.map((m) => [m, []])),
+      milestone50: newM50,
+      milestone100: newM100,
+      serverUpdatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
 
-    // 100-pt milestones
-    const newM100 = Math.floor(after / 100);
-    const oldM100 = data.milestone100 ?? Math.floor(before / 100);
-    const newPetDelta = Math.max(0, newM100 - oldM100);
+  return {
+    ownerKey: info.key,
+    pointsBefore: before,
+    pointsAfter: after,
+    pointsAwarded: amount,
+    spinDelta,
+    newPetDelta,
+    firstHatch,
+    pendingNewPet,
+  };
+}
 
-    const nextSpins = { ...(data.spinsByUser ?? {}) };
-    if (spinDelta > 0) {
-      for (const m of info.members) nextSpins[m] = (nextSpins[m] ?? 0) + spinDelta;
-    }
-
-    // First mood ever → starter egg should hatch even before 100 pts
-    const firstHatch = before === 0 && after > 0 && !data.currentPetId;
-
-    tx.set(
-      ref,
-      {
-        ownerType: data.ownerType,
-        ownerId: data.ownerId,
-        members: data.members,
-        points: after,
-        currentPetId: data.currentPetId ?? null,
-        pendingNewPet: data.pendingNewPet || newPetDelta > 0 || firstHatch,
-        spinsByUser: nextSpins,
-        inventoryByUser: data.inventoryByUser ?? {},
-        milestone50: newM50,
-        milestone100: newM100,
-      },
-      { merge: true },
-    );
-  });
+export async function awardPointsForMood(uid: string, amount = 10): Promise<PetAwardResult> {
+  const info = await resolveOwnerKey(uid);
+  await preparePetOwnerDoc(info);
+  return runTransaction(db, (tx) => awardResolvedPointsInTransaction(tx, info, amount));
 }
 
 export async function consumeSpin(uid: string): Promise<AccessoryKey | null> {

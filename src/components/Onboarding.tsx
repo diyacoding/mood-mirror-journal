@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/mood-mirror-logo.png";
+import logo from "@/assets/mood-mirror-logo-clean.png";
 
 interface Props { onDone: () => void }
 
@@ -47,8 +47,7 @@ export const Onboarding = ({ onDone }: Props) => {
           <img
             src={logo}
             alt="Mood Mirror"
-            className="w-56 h-56 object-contain mb-6 animate-glow-pulse animate-float"
-            style={{ mixBlendMode: "screen", background: "transparent" }}
+            className="w-56 h-56 object-contain mb-6 animate-glow-pulse animate-float border-0 bg-transparent"
           />
         ) : (
           <div className="w-32 h-32 mb-8 rounded-full glass flex items-center justify-center ring-glow animate-float">

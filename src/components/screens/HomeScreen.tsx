@@ -7,7 +7,7 @@ import { computeStreak, generateInsights } from "@/lib/moodAnalytics";
 import type { MoodEntry } from "@/lib/moodTypes";
 import type { Screen } from "../BottomNav";
 import { todayKey } from "@/lib/moodApi";
-import logo from "@/assets/mood-mirror-logo.png";
+import logo from "@/assets/mood-mirror-logo-clean.png";
 
 interface Props {
   entries: MoodEntry[];
@@ -38,8 +38,8 @@ export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) 
         <img
           src={logo}
           alt="Mood Mirror"
-          className="w-56 mb-4 drop-shadow-[0_0_25px_rgba(168,85,247,0.55)]"
-          style={{ mixBlendMode: "screen", background: "transparent" }}
+          className="w-56 mb-4 object-contain border-0 bg-transparent drop-shadow-[0_0_25px_rgba(168,85,247,0.55)]"
+          style={{ mixBlendMode: "normal" }}
         />
         <p className="text-purple-200/70 text-center text-sm">
           Reflect. Track. Understand yourself.

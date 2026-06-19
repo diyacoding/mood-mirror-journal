@@ -2,19 +2,23 @@
 // All entries are scoped to the signed-in user via `userId`.
 
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
   onSnapshot,
-  orderBy,
   query,
+  runTransaction,
   Timestamp,
   where,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import type { MoodEntry } from "./moodTypes";
-import { awardPointsForMood } from "./petApi";
+import {
+  awardResolvedPointsInTransaction,
+  preparePetOwnerDoc,
+  resolveOwnerKey,
+  type PetAwardResult,
+} from "./petApi";
 
 export const MOOD_COLLECTION = "mood_entries";
 
@@ -25,6 +29,11 @@ export type NewMoodEntry = Omit<MoodEntry, "id" | "createdAt" | "date"> & {
   createdAt?: number;
 };
 
+export interface MoodSaveResult {
+  id: string;
+  petAward: PetAwardResult;
+}
+
 export const todayKey = () => {
   const d = new Date();
   const y = d.getFullYear();
@@ -33,9 +42,11 @@ export const todayKey = () => {
   return `${y}-${m}-${day}`;
 };
 
-export async function addMoodEntry(entry: NewMoodEntry): Promise<string> {
+export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult> {
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error("Not signed in");
+  const entryRef = doc(col());
+  const petOwner = await resolveOwnerKey(uid);
   const payload = {
     userId: uid,
     mood: entry.mood,
@@ -48,10 +59,17 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<string> {
     createdAt: entry.createdAt ?? Date.now(),
     serverCreatedAt: Timestamp.now(),
   };
-  const ref = await addDoc(col(), payload);
-  // Pet Growth: +10 points per mood entry. Non-blocking; failure must not break logging.
-  awardPointsForMood(uid, 10).catch((e) => console.warn("[pet] award failed", e));
-  return ref.id;
+  await preparePetOwnerDoc(petOwner);
+  const petAward = await runTransaction(db, async (tx) => {
+    const award = await awardResolvedPointsInTransaction(tx, petOwner, 10);
+    tx.set(entryRef, payload);
+    return award;
+  });
+  console.info("[mood-flow] Mood Logged → Saved → Pet Points +10 → Milestone Check", {
+    moodEntryId: entryRef.id,
+    petAward,
+  });
+  return { id: entryRef.id, petAward };
 }
 
 export async function deleteMoodEntry(id: string): Promise<void> {
@@ -59,10 +77,10 @@ export async function deleteMoodEntry(id: string): Promise<void> {
 }
 
 export function subscribeMoodEntries(
+  uid: string | null | undefined,
   cb: (entries: MoodEntry[]) => void,
   onError?: (e: Error) => void,
 ): () => void {
-  const uid = auth.currentUser?.uid;
   if (!uid) {
     cb([]);
     return () => {};

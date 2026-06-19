@@ -14,10 +14,11 @@ import {
 import { ReflectionScoreCard } from "@/components/insights/ReflectionScoreCard";
 import { MoodPredictionCard } from "@/components/insights/MoodPredictionCard";
 import { WeeklyReportSection } from "@/components/insights/WeeklyReportSection";
+import type { PetOwnerDoc } from "@/lib/petTypes";
 
-interface Props { entries: MoodEntry[] }
+interface Props { entries: MoodEntry[]; petOwner?: PetOwnerDoc | null }
 
-export const InsightsScreen = ({ entries }: Props) => {
+export const InsightsScreen = ({ entries, petOwner }: Props) => {
   const insights = useMemo(() => generateInsights(entries), [entries]);
   const reflectionTrend = useMemo(() => weeklyReflectionTrend(entries), [entries]);
   const prediction = useMemo(() => predictTomorrowMood(entries), [entries]);
@@ -45,6 +46,9 @@ export const InsightsScreen = ({ entries }: Props) => {
   }, [entries]);
 
   const total = entries.length;
+  const petPoints = petOwner?.points ?? 0;
+  const nextSpinProgress = petPoints % 50;
+  const nextPetProgress = petPoints % 100;
 
   return (
     <div className="px-5 pt-10 pb-32 space-y-6 animate-fade-in relative">
@@ -60,6 +64,28 @@ export const InsightsScreen = ({ entries }: Props) => {
       <ReflectionScoreCard trend={reflectionTrend} />
       <MoodPredictionCard prediction={prediction} />
       <WeeklyReportSection report={weeklyReport} />
+
+      <section className="rounded-3xl glass p-5 shadow-card">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent mb-4">Pet progression</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="font-display text-3xl text-glow">{petPoints}</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">total pet points</p>
+          </div>
+          <div className="text-right text-xs text-accent/80">
+            <p>{50 - nextSpinProgress} pts to spin</p>
+            <p>{100 - nextPetProgress} pts to new pet</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+            <div className="h-full gradient-primary transition-smooth" style={{ width: `${(nextSpinProgress / 50) * 100}%` }} />
+          </div>
+          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+            <div className="h-full gradient-primary transition-smooth" style={{ width: `${(nextPetProgress / 100) * 100}%` }} />
+          </div>
+        </div>
+      </section>
 
       <div className="space-y-2">
         {insights.map((ins, i) => (

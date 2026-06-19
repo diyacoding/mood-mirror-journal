@@ -12,7 +12,9 @@ import { ConnectionsScreen } from "@/components/screens/ConnectionsScreen";
 import { PetScreen } from "@/components/screens/PetScreen";
 import { useMoodEntries } from "@/hooks/useMoodEntries";
 import { useAuth } from "@/hooks/useAuth";
+import { usePet } from "@/hooks/usePet";
 import type { MoodKey } from "@/lib/moodTypes";
+import type { MoodSaveResult } from "@/lib/moodApi";
 
 const ONBOARD_KEY = "mm.onboarded";
 
@@ -23,7 +25,8 @@ const Index = () => {
   const [screen, setScreen] = useState<Screen>("home");
   const [prefilledMood, setPrefilledMood] = useState<MoodKey | undefined>();
   const { user, loading: authLoading } = useAuth();
-  const { entries, loading } = useMoodEntries();
+  const { entries, loading } = useMoodEntries(user?.uid);
+  const { owner: petOwner } = usePet(user?.uid ?? null);
 
   useEffect(() => {
     document.title = "Mood Mirror — Track moods, behaviors, and patterns";
@@ -40,6 +43,11 @@ const Index = () => {
   const finishOnboarding = () => {
     localStorage.setItem(ONBOARD_KEY, "1");
     setOnboarded(true);
+  };
+
+  const finishMoodSave = (result: MoodSaveResult) => {
+    setPrefilledMood(undefined);
+    setScreen(result.petAward.pendingNewPet ? "pet" : "home");
   };
 
   if (!onboarded) return <Onboarding onDone={finishOnboarding} />;
@@ -67,17 +75,17 @@ const Index = () => {
           <LogScreen
             initialMood={prefilledMood}
             onBack={() => setScreen("home")}
-            onSaved={() => { setPrefilledMood(undefined); setScreen("home"); }}
+            onSaved={finishMoodSave}
           />
         )}
         {screen === "scan" && (
           <ScanScreen
             onBack={() => setScreen("home")}
-            onConfirm={(m) => { setPrefilledMood(m); setScreen("home"); }}
+            onConfirm={finishMoodSave}
           />
         )}
         {screen === "history" && <HistoryScreen entries={entries} loading={loading} />}
-        {screen === "insights" && <InsightsScreen entries={entries} />}
+        {screen === "insights" && <InsightsScreen entries={entries} petOwner={petOwner} />}
         {screen === "connections" && <ConnectionsScreen user={user} />}
         {screen === "pet" && <PetScreen user={user} />}
         {screen === "settings" && <SettingsScreen entries={entries} />}

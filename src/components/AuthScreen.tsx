@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import logo from "@/assets/mood-mirror-logo.png";
+import logo from "@/assets/mood-mirror-logo-clean.png";
 
 export const AuthScreen = () => {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -42,7 +42,7 @@ export const AuthScreen = () => {
       <div className="absolute -top-40 -left-40 w-[28rem] h-[28rem] rounded-full gradient-glow blur-3xl opacity-60" />
       <div className="absolute -bottom-40 -right-40 w-[28rem] h-[28rem] rounded-full gradient-glow blur-3xl opacity-40" />
 
-      <img src={logo} alt="Mood Mirror" className="w-28 h-28 mb-6 animate-glow-pulse relative" />
+      <img src={logo} alt="Mood Mirror" className="w-28 h-28 mb-6 animate-glow-pulse relative object-contain border-0 bg-transparent" />
       <h1 className="font-display text-3xl tracking-widest text-glow mb-1 relative">Mood Mirror</h1>
       <p className="text-xs uppercase tracking-[0.25em] text-accent/80 mb-8 relative">
         {mode === "signin" ? "Welcome back" : "Create your account"}
