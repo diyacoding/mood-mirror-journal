@@ -42,25 +42,51 @@ export const todayKey = () => {
   return `${y}-${m}-${day}`;
 };
 
+function stripUndefined<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(stripUndefined) as any;
+  if (typeof obj === "object") {
+    const out: any = {};
+    for (const [k, v] of Object.entries(obj as any)) {
+      if (v === undefined) continue;
+      out[k] = stripUndefined(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
+function sanitizeBehaviors(b: any) {
+  const src = b ?? {};
+  const num = (v: any) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  return {
+    sleepHours: num(src.sleepHours),
+    sleepMinutes: num(src.sleepMinutes),
+    exerciseHours: num(src.exerciseHours),
+    exerciseMinutes: num(src.exerciseMinutes),
+    screenTimeHours: num(src.screenTimeHours),
+  };
+}
+
 export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult> {
   const uid = auth.currentUser?.uid;
   console.info("[mood-flow] addMoodEntry start", { uid, mood: entry.mood });
   if (!uid) throw new Error("You must be signed in to save a mood.");
 
   const entryRef = doc(col());
-  const payload = {
+  const payload = stripUndefined({
     userId: uid,
     mood: entry.mood,
-    intensity: entry.intensity,
+    intensity: entry.intensity ?? 5,
     note: entry.note ?? "",
     source: entry.source,
     confidence: entry.confidence ?? null,
-    behaviors: entry.behaviors ?? {},
+    behaviors: sanitizeBehaviors(entry.behaviors),
     date: entry.date ?? todayKey(),
     createdAt: entry.createdAt ?? Date.now(),
     serverCreatedAt: Timestamp.now(),
-  };
-  console.info("[mood-flow] Mood payload", payload);
+  });
+  console.info("[mood-flow] Mood payload (sanitized)", JSON.stringify(payload, null, 2));
 
   // 1) Save the mood entry — this is the critical write.
   try {
