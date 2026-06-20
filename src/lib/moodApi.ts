@@ -44,9 +44,10 @@ export const todayKey = () => {
 
 export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult> {
   const uid = auth.currentUser?.uid;
-  if (!uid) throw new Error("Not signed in");
+  console.info("[mood-flow] addMoodEntry start", { uid, mood: entry.mood });
+  if (!uid) throw new Error("You must be signed in to save a mood.");
+
   const entryRef = doc(col());
-  const petOwner = await resolveOwnerKey(uid);
   const payload = {
     userId: uid,
     mood: entry.mood,
@@ -59,16 +60,46 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
     createdAt: entry.createdAt ?? Date.now(),
     serverCreatedAt: Timestamp.now(),
   };
-  await preparePetOwnerDoc(petOwner);
-  const petAward = await runTransaction(db, async (tx) => {
-    const award = await awardResolvedPointsInTransaction(tx, petOwner, 10);
-    tx.set(entryRef, payload);
-    return award;
-  });
-  console.info("[mood-flow] Mood Logged → Saved → Pet Points +10 → Milestone Check", {
-    moodEntryId: entryRef.id,
-    petAward,
-  });
+  console.info("[mood-flow] Mood payload", payload);
+
+  // 1) Save the mood entry — this is the critical write.
+  try {
+    const { setDoc } = await import("firebase/firestore");
+    await setDoc(entryRef, payload);
+    console.info("[mood-flow] Mood saved ✔", { id: entryRef.id });
+  } catch (err: any) {
+    console.error("[mood-flow] Mood save FAILED", {
+      code: err?.code,
+      message: err?.message,
+      err,
+    });
+    throw new Error(
+      `Save failed${err?.code ? ` (${err.code})` : ""}: ${err?.message ?? "unknown error"}`,
+    );
+  }
+
+  // 2) Award pet points — never let this block / fail the mood save.
+  let petAward: PetAwardResult = {
+    ownerKey: `u_${uid}`,
+    pointsBefore: 0,
+    pointsAfter: 0,
+    pointsAwarded: 0,
+    spinDelta: 0,
+    newPetDelta: 0,
+    firstHatch: false,
+    pendingNewPet: false,
+  };
+  try {
+    const petOwner = await resolveOwnerKey(uid);
+    await preparePetOwnerDoc(petOwner);
+    petAward = await runTransaction(db, (tx) =>
+      awardResolvedPointsInTransaction(tx, petOwner, 10),
+    );
+    console.info("[mood-flow] Pet points +10 awarded", petAward);
+  } catch (err: any) {
+    console.warn("[mood-flow] Pet award skipped:", err?.code, err?.message);
+  }
+
   return { id: entryRef.id, petAward };
 }
 

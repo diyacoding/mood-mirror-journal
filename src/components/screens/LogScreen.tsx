@@ -53,8 +53,8 @@ export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
       toast.success("Mood saved ✨");
       onSaved(result);
     } catch (e: any) {
-      console.error(e);
-      toast.error("Failed to save");
+      console.error("[LogScreen] save error", e);
+      toast.error(e?.message || "Failed to save");
     } finally {
       setSaving(false);
     }
