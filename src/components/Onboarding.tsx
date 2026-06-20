@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/mood-mirror-logo-clean.png";
+import logo from "@/assets/mood-mirror-logo.png";
 
 interface Props { onDone: () => void }
 

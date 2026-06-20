@@ -7,7 +7,7 @@ import { computeStreak, generateInsights } from "@/lib/moodAnalytics";
 import type { MoodEntry } from "@/lib/moodTypes";
 import type { Screen } from "../BottomNav";
 import { todayKey } from "@/lib/moodApi";
-import logo from "@/assets/mood-mirror-logo-clean.png";
+import logo from "@/assets/mood-mirror-logo.png";
 
 interface Props {
   entries: MoodEntry[];
