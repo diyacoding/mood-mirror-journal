@@ -47,20 +47,34 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
   // 100-pt milestones, etc.) and we haven't already handled this particular state.
   useEffect(() => {
     if (!owner || loading) return;
+    console.info("[pet-flow] owner snapshot", {
+      id: owner.id,
+      points: owner.points,
+      pendingNewPet: owner.pendingNewPet,
+      currentPetId: owner.currentPetId,
+      milestone100: owner.milestone100,
+      items: items.length,
+    });
     if (!owner.pendingNewPet) return;
     if (creator || hatching) return;
-    // Use a key that changes every time a new hatch is owed so we re-trigger
-    // for each milestone but not on every render.
     const hatchKey = `${owner.id}:${owner.milestone100 ?? 0}:${items.length}`;
     if (hatchHandledRef.current === hatchKey) return;
     hatchHandledRef.current = hatchKey;
+    console.info("[pet-flow] 🥚 Triggering hatch animation", { hatchKey });
     setHatching(true);
   }, [owner, loading, creator, hatching, items.length]);
 
   useEffect(() => {
     if (!hatchTrigger || creator || hatching) return;
+    console.info("[pet-flow] 🥚 Hatch trigger from mood save", hatchTrigger);
     setHatching(true);
   }, [hatchTrigger, creator, hatching]);
+
+  const forceHatch = () => {
+    console.info("[pet-flow] 🔧 Force hatch pressed");
+    hatchHandledRef.current = null;
+    setHatching(true);
+  };
 
   const handleCreate = async (dataUrl: string) => {
     try {
