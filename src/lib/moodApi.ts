@@ -117,13 +117,26 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
   };
   try {
     const petOwner = await resolveOwnerKey(uid);
+    console.info("[mood-flow] Pet owner resolved", petOwner);
     await preparePetOwnerDoc(petOwner);
+    console.info("[mood-flow] Pet owner doc prepared ✔");
     petAward = await runTransaction(db, (tx) =>
       awardResolvedPointsInTransaction(tx, petOwner, 10),
     );
-    console.info("[mood-flow] Pet points +10 awarded", petAward);
+    console.info("[mood-flow] ✅ Mood saved");
+    console.info("[mood-flow] Current pet points:", petAward.pointsBefore);
+    console.info("[mood-flow] Updated pet points:", petAward.pointsAfter);
+    console.info("[mood-flow] firstHatch:", petAward.firstHatch, "pendingNewPet:", petAward.pendingNewPet);
   } catch (err: any) {
-    console.warn("[mood-flow] Pet award skipped:", err?.code, err?.message);
+    console.error("[mood-flow] ❌ Pet award FAILED", {
+      code: err?.code,
+      message: err?.message,
+      err,
+    });
+    // Re-throw is too aggressive (mood is already saved). Instead, mark so UI
+    // can still auto-navigate to the pet screen and the user can force-hatch.
+    petAward.pendingNewPet = true;
+    petAward.firstHatch = true;
   }
 
   return { id: entryRef.id, petAward };
