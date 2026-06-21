@@ -136,22 +136,55 @@ export async function createPet(
   imageDataUrl: string,
   name?: string,
 ): Promise<string> {
+  console.info("[pet-save] createPet start", {
+    uid,
+    authUid: auth.currentUser?.uid,
+    nameSize: imageDataUrl?.length,
+  });
+  if (!auth.currentUser?.uid) {
+    throw new Error("You must be signed in to save a pet.");
+  }
   const info = await resolveOwnerKey(uid);
+  console.info("[pet-save] resolved owner", info);
   await ensureOwnerDoc(uid);
+  console.info("[pet-save] owner doc ensured");
 
-  const item: Omit<PetItem, "id"> = {
+  const item: Omit<PetItem, "id"> & { ownerKey: string; members: string[] } = {
     imageDataUrl,
     name: name ?? "Lumi",
     accessories: [],
     createdAt: Date.now(),
     createdBy: uid,
+    // Ownership fields on the item itself so rules can verify directly
+    // without needing to read the parent doc.
+    ownerKey: info.key,
+    members: info.members,
   };
-  const ref = await addDoc(itemsCol(info.key), item);
+  console.info("[pet-save] item payload", { ...item, imageDataUrl: `[${imageDataUrl.length} chars]` });
 
-  await updateDoc(ownerRef(info.key), {
-    currentPetId: ref.id,
-    pendingNewPet: false,
-  });
+  let ref;
+  try {
+    ref = await addDoc(itemsCol(info.key), item);
+    console.info("[pet-save] ✅ item written", { id: ref.id });
+  } catch (err: any) {
+    console.error("[pet-save] ❌ items write FAILED", {
+      code: err?.code,
+      message: err?.message,
+      ownerKey: info.key,
+      uid,
+    });
+    throw new Error(`Save failed${err?.code ? ` (${err.code})` : ""}: ${err?.message ?? "unknown"}`);
+  }
+
+  try {
+    await updateDoc(ownerRef(info.key), {
+      currentPetId: ref.id,
+      pendingNewPet: false,
+    });
+    console.info("[pet-save] ✅ owner doc updated with currentPetId");
+  } catch (err: any) {
+    console.warn("[pet-save] owner update failed (pet still saved)", err?.code, err?.message);
+  }
   return ref.id;
 }
 
