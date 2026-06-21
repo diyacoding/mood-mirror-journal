@@ -135,13 +135,31 @@ service cloud.firestore {
       allow delete: if false;
 
       match /items/{itemId} {
+        // Defensive parent lookup: if parent or members is missing, returns false instead of erroring.
         function parentMember() {
-          let parent = get(/databases/$(database)/documents/pets/$(ownerKey)).data;
-          return request.auth != null && parent.members.hasAny([request.auth.uid]);
+          let parent = get(/databases/$(database)/documents/pets/$(ownerKey));
+          return request.auth != null
+                 && parent != null
+                 && parent.data.keys().hasAny(['members'])
+                 && parent.data.members.hasAny([request.auth.uid]);
         }
-        allow read: if parentMember();
-        allow create, update: if parentMember();
-        allow delete: if parentMember();
+        // Item-level ownership check — works even if parent doc read fails.
+        function itemMember() {
+          return request.auth != null
+                 && request.resource.data.keys().hasAny(['members'])
+                 && request.resource.data.members.hasAny([request.auth.uid])
+                 && request.resource.data.createdBy == request.auth.uid;
+        }
+        function existingItemMember() {
+          return request.auth != null
+                 && resource.data.keys().hasAny(['members'])
+                 && resource.data.members.hasAny([request.auth.uid]);
+        }
+        allow read:   if parentMember() || existingItemMember();
+        allow create: if itemMember();
+        allow update: if (parentMember() || existingItemMember())
+                      && request.resource.data.createdBy == resource.data.createdBy;
+        allow delete: if existingItemMember();
       }
     }
   }
