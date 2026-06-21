@@ -175,7 +175,16 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
         >
           <Sparkles className="h-4 w-4 mr-1" /> {mySpins > 0 ? "Spin the wheel" : "Log more moods"}
         </Button>
+        {/* Debug: force hatch — useful if the egg ever fails to trigger */}
+        <Button
+          onClick={forceHatch}
+          variant="outline"
+          className="w-full rounded-full glass border-accent/40 h-10 text-xs tracking-widest uppercase"
+        >
+          🥚 Force Hatch Egg (debug)
+        </Button>
       </div>
+
 
       {/* Inventory + apply */}
       {inventory.length > 0 && currentPet && (
