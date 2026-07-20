@@ -55,7 +55,7 @@ const Index = () => {
   if (!onboarded) return <Onboarding onDone={finishOnboarding} />;
   if (authLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0D001F] via-[#140028] to-black text-purple-100">
+      <main className="app-shell min-h-screen flex items-center justify-center">
         <p className="text-sm text-muted-foreground">Loading…</p>
       </main>
     );
@@ -63,7 +63,7 @@ const Index = () => {
   if (!user) return <AuthScreen />;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#0D001F] via-[#140028] to-black text-purple-100">
+    <main className="app-shell min-h-screen">
       <div className="max-w-md mx-auto relative">
         {screen === "home" && (
           <HomeScreen

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Bell, Trash2, Shield, Heart, Cloud } from "lucide-react";
+import { Bell, Trash2, Shield, Heart, Cloud, Moon, Sun, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { deleteMoodEntry } from "@/lib/moodApi";
 import type { MoodEntry } from "@/lib/moodTypes";
 import { toast } from "sonner";
+import { useTheme } from "@/hooks/useTheme";
+import { cn } from "@/lib/utils";
 
 interface Props {
   entries: MoodEntry[];
@@ -16,6 +18,8 @@ export const SettingsScreen = ({ entries }: Props) => {
   const [time, setTime] = useState<string>(() => localStorage.getItem("mm.reminderTime") ?? "21:00");
   const [confirming, setConfirming] = useState(false);
   const [erasing, setErasing] = useState(false);
+  const { theme, setTheme } = useTheme();
+
 
   useEffect(() => { localStorage.setItem("mm.reminders", reminders ? "1" : "0"); }, [reminders]);
   useEffect(() => { localStorage.setItem("mm.reminderTime", time); }, [time]);
