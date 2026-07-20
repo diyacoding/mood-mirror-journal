@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Bell, Trash2, Shield, Heart, Cloud } from "lucide-react";
+import { Bell, Trash2, Shield, Heart, Cloud, Moon, Sun, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { deleteMoodEntry } from "@/lib/moodApi";
 import type { MoodEntry } from "@/lib/moodTypes";
 import { toast } from "sonner";
+import { useTheme } from "@/hooks/useTheme";
+import { cn } from "@/lib/utils";
 
 interface Props {
   entries: MoodEntry[];
@@ -16,6 +18,8 @@ export const SettingsScreen = ({ entries }: Props) => {
   const [time, setTime] = useState<string>(() => localStorage.getItem("mm.reminderTime") ?? "21:00");
   const [confirming, setConfirming] = useState(false);
   const [erasing, setErasing] = useState(false);
+  const { theme, setTheme } = useTheme();
+
 
   useEffect(() => { localStorage.setItem("mm.reminders", reminders ? "1" : "0"); }, [reminders]);
   useEffect(() => { localStorage.setItem("mm.reminderTime", time); }, [time]);
@@ -52,6 +56,47 @@ export const SettingsScreen = ({ entries }: Props) => {
         <p className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Preferences</p>
         <h1 className="font-display text-2xl mt-2 tracking-widest text-glow">Settings</h1>
       </header>
+
+      <section className="rounded-3xl glass p-5 shadow-card">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-xl bg-accent/15 flex items-center justify-center text-accent ring-1 ring-accent/30">
+            <Palette className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <div className="font-medium tracking-wide">Appearance</div>
+            <p className="text-xs text-muted-foreground mt-0.5 font-light">Choose how Mood Mirror looks.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setTheme("dark")}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm transition-smooth border",
+                  theme === "dark"
+                    ? "bg-primary/20 border-accent/50 text-foreground ring-1 ring-accent/40"
+                    : "glass border-transparent text-muted-foreground hover:text-foreground",
+                )}
+                aria-pressed={theme === "dark"}
+              >
+                <Moon className="h-4 w-4" /> Dark Mode
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme("light")}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm transition-smooth border",
+                  theme === "light"
+                    ? "bg-primary/20 border-accent/50 text-foreground ring-1 ring-accent/40"
+                    : "glass border-transparent text-muted-foreground hover:text-foreground",
+                )}
+                aria-pressed={theme === "light"}
+              >
+                <Sun className="h-4 w-4" /> Light Mode
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       <section className="rounded-3xl glass shadow-card overflow-hidden">
         <div className="p-5 flex items-start gap-3">
