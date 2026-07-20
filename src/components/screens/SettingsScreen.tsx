@@ -57,6 +57,47 @@ export const SettingsScreen = ({ entries }: Props) => {
         <h1 className="font-display text-2xl mt-2 tracking-widest text-glow">Settings</h1>
       </header>
 
+      <section className="rounded-3xl glass p-5 shadow-card">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-xl bg-accent/15 flex items-center justify-center text-accent ring-1 ring-accent/30">
+            <Palette className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <div className="font-medium tracking-wide">Appearance</div>
+            <p className="text-xs text-muted-foreground mt-0.5 font-light">Choose how Mood Mirror looks.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setTheme("dark")}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm transition-smooth border",
+                  theme === "dark"
+                    ? "bg-primary/20 border-accent/50 text-foreground ring-1 ring-accent/40"
+                    : "glass border-transparent text-muted-foreground hover:text-foreground",
+                )}
+                aria-pressed={theme === "dark"}
+              >
+                <Moon className="h-4 w-4" /> Dark Mode
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme("light")}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm transition-smooth border",
+                  theme === "light"
+                    ? "bg-primary/20 border-accent/50 text-foreground ring-1 ring-accent/40"
+                    : "glass border-transparent text-muted-foreground hover:text-foreground",
+                )}
+                aria-pressed={theme === "light"}
+              >
+                <Sun className="h-4 w-4" /> Light Mode
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
       <section className="rounded-3xl glass shadow-card overflow-hidden">
         <div className="p-5 flex items-start gap-3">
           <div className="h-10 w-10 rounded-xl bg-accent/15 flex items-center justify-center text-accent ring-1 ring-accent/30">
