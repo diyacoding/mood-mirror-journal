@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { format, subDays } from "date-fns";
-import { Sparkles, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
