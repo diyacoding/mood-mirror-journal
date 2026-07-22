@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { format } from "date-fns";
-import { Flame, Plus, Sparkles, Camera } from "lucide-react";
+import { Flame, Plus, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { moodMeta } from "@/lib/moodTypes";
 import { computeStreak, generateInsights } from "@/lib/moodAnalytics";
