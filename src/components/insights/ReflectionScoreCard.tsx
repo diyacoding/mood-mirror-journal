@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { ReflectionTrend } from "@/lib/reflectionAnalytics";
 
 interface Props { trend: ReflectionTrend }
