@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { format } from "date-fns";
-import { Flame, Plus, Sparkles, Camera } from "lucide-react";
+import { Flame, Plus, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { moodMeta } from "@/lib/moodTypes";
 import { computeStreak, generateInsights } from "@/lib/moodAnalytics";
@@ -80,7 +80,6 @@ export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) 
 
       <div className="rounded-3xl glass p-5 border-accent/20">
         <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="h-4 w-4 text-accent" />
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">Today's insight</h3>
         </div>
         <p className="text-sm text-foreground/90 leading-relaxed font-light">{insights[0].text}</p>

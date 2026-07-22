@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { ReflectionTrend } from "@/lib/reflectionAnalytics";
 
 interface Props { trend: ReflectionTrend }
@@ -30,7 +30,6 @@ export const ReflectionScoreCard = ({ trend }: Props) => {
   return (
     <section className="rounded-3xl glass p-5 shadow-card space-y-4">
       <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-accent" />
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.25em] text-accent">
           Reflection Score
         </h2>

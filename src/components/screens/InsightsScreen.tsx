@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { format, subDays } from "date-fns";
-import { Sparkles, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
@@ -90,7 +90,6 @@ export const InsightsScreen = ({ entries, petOwner }: Props) => {
       <div className="space-y-2">
         {insights.map((ins, i) => (
           <div key={i} className="rounded-2xl glass p-4 flex gap-3 items-start">
-            <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-accent" />
             <p className="text-sm leading-relaxed font-light">{ins.text}</p>
           </div>
         ))}
