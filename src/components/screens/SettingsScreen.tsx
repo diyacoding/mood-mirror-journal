@@ -38,7 +38,7 @@ interface Props {
 }
 
 const APP_VERSION = "1.4.0";
-const CONTACT_EMAIL = "hello@moodmirror.app";
+const CONTACT_EMAIL = "diyasrinivasan9@gmail.com";
 
 const Card = ({
   icon,
@@ -335,7 +335,7 @@ export const SettingsScreen = ({ entries }: Props) => {
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Developer</dt>
-            <dd>Mood Mirror Studio</dd>
+            <dd>Diya Srinivasan</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Contact</dt>
