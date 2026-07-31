@@ -19,6 +19,7 @@ import { PetDrawingCanvas } from "@/components/pet/PetDrawingCanvas";
 import { AccessoryWheel } from "@/components/pet/AccessoryWheel";
 import { EggHatch } from "@/components/pet/EggHatch";
 import { cn } from "@/lib/utils";
+import { celebrate } from "@/lib/celebrate";
 
 interface Props {
   user: User;
@@ -79,6 +80,7 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
   const handleCreate = async (dataUrl: string) => {
     try {
       await createPet(user.uid, dataUrl);
+      celebrate("pet-saved");
       toast.success(shared ? "Pet hatched ✨ shared with your partner" : "Pet hatched ✨");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not save pet");
@@ -87,7 +89,10 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
 
   const handleSpin = async () => {
     const reward = await consumeSpin(user.uid);
-    if (reward) toast.success(`Earned ${accessoryMeta(reward).label}!`);
+    if (reward) {
+      celebrate("accessory");
+      toast.success(`Earned ${accessoryMeta(reward).label}!`);
+    }
     return reward;
   };
 
@@ -268,6 +273,7 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
           onDone={() => {
             setHatching(false);
             setCreator(true);
+            celebrate("hatch");
             toast.success("Your pet has hatched! 🎉");
           }}
         />

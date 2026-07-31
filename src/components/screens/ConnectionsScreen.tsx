@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { signOut, User } from "firebase/auth";
+import { bumpCounter } from "@/lib/achievements";
 import { Copy, LogOut, Pencil, Send, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,6 +103,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
     setText("");
     try {
       await sendTextMessage(cid, user.uid, t);
+      bumpCounter(user.uid, "lettersSent");
     } catch (e: any) {
       toast.error("Failed to send");
       setText(t);
@@ -112,6 +114,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
     if (!cid) return;
     try {
       await sendDrawingMessage(cid, user.uid, dataUrl);
+      bumpCounter(user.uid, "lettersSent");
       toast.success("Drawing sent");
     } catch (e: any) {
       console.error("Drawing send failed", e);

@@ -1,7 +1,18 @@
-import { Home, BarChart3, Settings as SettingsIcon, Camera, Users, PawPrint } from "lucide-react";
+import { Home, CalendarDays, Camera, PawPrint, Trophy, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type Screen = "home" | "log" | "scan" | "history" | "insights" | "settings" | "connections" | "pet";
+export type Screen =
+  | "home"
+  | "log"
+  | "scan"
+  | "history"
+  | "insights"
+  | "settings"
+  | "connections"
+  | "pet"
+  | "calendar"
+  | "achievements"
+  | "profile";
 
 interface Props {
   active: Screen;
@@ -10,11 +21,11 @@ interface Props {
 
 const items: { key: Screen; label: string; icon: any }[] = [
   { key: "home", label: "Home", icon: Home },
-  { key: "pet", label: "Pet", icon: PawPrint },
+  { key: "calendar", label: "Calendar", icon: CalendarDays },
   { key: "scan", label: "Scan", icon: Camera },
-  { key: "connections", label: "Connect", icon: Users },
-  { key: "insights", label: "Insights", icon: BarChart3 },
-  { key: "settings", label: "Settings", icon: SettingsIcon },
+  { key: "pet", label: "Pet", icon: PawPrint },
+  { key: "achievements", label: "Badges", icon: Trophy },
+  { key: "profile", label: "Profile", icon: User },
 ];
 
 export const BottomNav = ({ active, onChange }: Props) => {
