@@ -102,6 +102,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
     setText("");
     try {
       await sendTextMessage(cid, user.uid, t);
+      bumpCounter(user.uid, "lettersSent");
     } catch (e: any) {
       toast.error("Failed to send");
       setText(t);
@@ -112,6 +113,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
     if (!cid) return;
     try {
       await sendDrawingMessage(cid, user.uid, dataUrl);
+      bumpCounter(user.uid, "lettersSent");
       toast.success("Drawing sent");
     } catch (e: any) {
       console.error("Drawing send failed", e);
