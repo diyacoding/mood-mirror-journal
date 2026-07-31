@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { signOut, User } from "firebase/auth";
+import { bumpCounter } from "@/lib/achievements";
 import { Copy, LogOut, Pencil, Send, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
