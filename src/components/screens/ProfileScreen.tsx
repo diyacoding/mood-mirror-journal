@@ -5,12 +5,13 @@ import { signOut } from "firebase/auth";
 import {
   Camera,
   Pencil,
-  BarChart3,
-  Users,
+  Trophy,
+  CalendarDays,
   Settings as SettingsIcon,
   ChevronRight,
   LogOut,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
