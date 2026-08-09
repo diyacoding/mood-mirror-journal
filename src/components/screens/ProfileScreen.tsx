@@ -190,8 +190,8 @@ export const ProfileScreen = ({ user, entries, pets, currentPet, achievements, o
 
       <section className="rounded-3xl glass p-2">
         {[
-          { key: "insights" as Screen, label: "Insights", icon: BarChart3 },
-          { key: "connections" as Screen, label: "Connections", icon: Users },
+          { key: "achievements" as Screen, label: "Badges", icon: Trophy },
+          { key: "calendar" as Screen, label: "Calendar", icon: CalendarDays },
           { key: "settings" as Screen, label: "Settings", icon: SettingsIcon },
         ].map(({ key, label, icon: Icon }) => (
           <button
