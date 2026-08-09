@@ -3,7 +3,7 @@ import { Sparkles, ArrowRight, Moon, Sun, Bell, PawPrint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import logo from "@/assets/mood-mirror-logo.png";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useTheme } from "@/hooks/useTheme";
 import { usePreferences, STICKER_SETS } from "@/hooks/usePreferences";
 import { cn } from "@/lib/utils";
@@ -30,9 +30,7 @@ export const Onboarding = ({ onDone }: Props) => {
       <div className="relative flex-1 overflow-y-auto px-7 pt-14 pb-6 max-w-md w-full mx-auto">
         {i === 0 && (
           <div className="flex flex-col items-center text-center animate-fade-in">
-            <img
-              src={logo}
-              alt="Mood Mirror Journal"
+            <BrandLogo
               className="w-44 h-44 object-contain mb-4 animate-glow-pulse animate-float border-0 bg-transparent"
             />
             <h1 className="font-display text-3xl mb-3 text-glow tracking-widest">Mood Mirror Journal</h1>
