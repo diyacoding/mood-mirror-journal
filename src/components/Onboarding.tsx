@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, ArrowRight, Moon, Sun, Bell, PawPrint } from "lucide-react";
+import { ArrowRight, Moon, Sun, Bell, PawPrint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -33,15 +33,12 @@ export const Onboarding = ({ onDone }: Props) => {
             <BrandLogo
               className="w-44 h-44 object-contain mb-4 animate-glow-pulse animate-float border-0 bg-transparent"
             />
-            <h1 className="font-display text-3xl mb-3 text-glow tracking-widest">Mood Mirror Journal</h1>
-            <p className="text-muted-foreground font-light mb-6">
-              A cozy daily companion for how you feel — and why.
-            </p>
+            <div className="mb-6" />
             <ul className="space-y-2 text-sm text-left w-full">
               {[
                 ["📝", "Track your moods in seconds"],
                 ["🪞", "Reflect through journaling"],
-                ["🐣", "Grow a pet — solo or with a friend"],
+                ["🐣", "Grow a pet, or solo or with a friend!"],
                 ["📊", "Discover mood insights & patterns"],
                 ["💌", "Stay connected through letters"],
               ].map(([emoji, text]) => (
@@ -158,9 +155,6 @@ export const Onboarding = ({ onDone }: Props) => {
 
         {i === 3 && (
           <div className="flex flex-col items-center text-center animate-fade-in pt-10">
-            <div className="w-32 h-32 mb-8 rounded-full glass flex items-center justify-center ring-glow animate-float">
-              <Sparkles className="h-12 w-12 text-accent text-glow" />
-            </div>
             <h1 className="font-display text-3xl mb-3 text-glow tracking-widest">You're ready</h1>
             <p className="text-muted-foreground font-light max-w-sm">
               You're ready to begin your Mood Mirror journey.
@@ -188,7 +182,7 @@ export const Onboarding = ({ onDone }: Props) => {
           {i === 0 && <>Get Started <ArrowRight className="ml-2 h-4 w-4" /></>}
           {i === 1 && <>Continue <ArrowRight className="ml-2 h-4 w-4" /></>}
           {i === 2 && <>Continue <ArrowRight className="ml-2 h-4 w-4" /></>}
-          {i === 3 && <>Start Logging Moods <Sparkles className="ml-2 h-4 w-4" /></>}
+          {i === 3 && <>Start Logging Moods</>}
         </Button>
       </div>
     </div>

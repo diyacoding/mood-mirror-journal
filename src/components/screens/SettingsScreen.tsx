@@ -8,7 +8,6 @@ import {
   Moon,
   Sun,
   Palette,
-  Sparkles,
   Accessibility,
   Download,
   FileText,
@@ -188,7 +187,7 @@ export const SettingsScreen = ({ entries }: Props) => {
       </Card>
 
       {/* Sticker Set */}
-      <Card icon={<Sparkles className="h-5 w-5" />} title="Sticker set" subtitle="Pick the icon style for your moods.">
+      <Card icon={null} title="Sticker set" subtitle="Pick the icon style for your moods.">
         <div className="mt-4 grid grid-cols-2 gap-2">
           {STICKER_SETS.map((s) => (
             <button

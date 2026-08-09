@@ -1,4 +1,4 @@
-import { Home, CalendarDays, Camera, PawPrint, Trophy, User } from "lucide-react";
+import { Home, MessageSquareHeart, Camera, PawPrint, BarChart3, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type Screen =
@@ -21,12 +21,13 @@ interface Props {
 
 const items: { key: Screen; label: string; icon: any }[] = [
   { key: "home", label: "Home", icon: Home },
-  { key: "calendar", label: "Calendar", icon: CalendarDays },
+  { key: "connections", label: "Chats", icon: MessageSquareHeart },
   { key: "scan", label: "Scan", icon: Camera },
   { key: "pet", label: "Pet", icon: PawPrint },
-  { key: "achievements", label: "Badges", icon: Trophy },
+  { key: "insights", label: "Insights", icon: BarChart3 },
   { key: "profile", label: "Profile", icon: User },
 ];
+
 
 export const BottomNav = ({ active, onChange }: Props) => {
   return (

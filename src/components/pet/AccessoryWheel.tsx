@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Sparkles } from "lucide-react";
+import { X } from "lucide-react";
 import { ACCESSORIES, accessoryMeta } from "@/lib/petTypes";
 import type { AccessoryKey } from "@/lib/petTypes";
 import { cn } from "@/lib/utils";
@@ -90,7 +90,6 @@ export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
             "w-full rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-12",
           )}
         >
-          <Sparkles className="h-4 w-4 mr-2" />
           {spinsRemaining <= 0 ? "No spins" : spinning ? "Spinning…" : "Spin"}
         </Button>
       </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { User } from "firebase/auth";
 import { toast } from "sonner";
-import { Sparkles, Gift, Plus, Wand2 } from "lucide-react";
+import { Gift, Plus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePet } from "@/hooks/usePet";
 import {
@@ -178,7 +178,7 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
           disabled={mySpins <= 0}
           className="w-full rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-11"
         >
-          <Sparkles className="h-4 w-4 mr-1" /> {mySpins > 0 ? "Spin the wheel" : "Log more moods"}
+          {mySpins > 0 ? "Spin the wheel" : "Log more moods"}
         </Button>
         {/* Debug: force hatch — useful if the egg ever fails to trigger */}
         <Button
