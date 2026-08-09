@@ -42,7 +42,7 @@ export function generateInsights(entries: MoodEntry[]): Insight[] {
   const recentAvg = avg(recent7.map((e) => e.s));
 
   if (recentAvg >= 7) {
-    out.push({ text: "Your last week has been mostly positive — keep it up!", tone: "positive" });
+    out.push({ text: "Your last week has been mostly positive. Keep it up!", tone: "positive" });
   } else if (recentAvg <= 4) {
     out.push({ text: "Recent days have felt heavy. Be gentle with yourself.", tone: "watch" });
   } else {
