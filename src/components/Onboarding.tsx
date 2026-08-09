@@ -3,7 +3,7 @@ import { Sparkles, ArrowRight, Moon, Sun, Bell, PawPrint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import logo from "@/assets/mood-mirror-logo.png";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useTheme } from "@/hooks/useTheme";
 import { usePreferences, STICKER_SETS } from "@/hooks/usePreferences";
 import { cn } from "@/lib/utils";
