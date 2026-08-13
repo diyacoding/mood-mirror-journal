@@ -11,6 +11,7 @@ interface Props {
 }
 
 export const HistoryScreen = ({ entries, loading }: Props) => {
+  const icons = useIcons();
   const remove = async (id: string) => {
     try {
       await deleteMoodEntry(id);
