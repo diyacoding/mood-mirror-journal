@@ -82,19 +82,10 @@ export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
                   key={a.key}
                   className="absolute left-1/2 top-1/2 text-2xl leading-none"
                   style={{
-                    transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-38%) rotate(${-angle}deg)`,
-                    // translateY percentage is relative to the icon, so use a fixed radius instead
-                    transformOrigin: "center",
+                    transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-80px) rotate(${-angle}deg)`,
                   }}
                 >
-                  <span
-                    className="block"
-                    style={{
-                      transform: `rotate(${angle}deg) translateY(-80px) rotate(${-angle}deg)`,
-                    }}
-                  >
-                    {icons.accessory(a.key)}
-                  </span>
+                  {icons.accessory(a.key)}
                 </span>
               );
             })}
