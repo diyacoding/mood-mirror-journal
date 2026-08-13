@@ -379,9 +379,9 @@ export async function addCustomAccessory(
     tx.set(
       ref,
       {
-        [`inventoryByUser.${uid}`]: [...inv, id],
+        inventoryByUser: { [uid]: [...inv, id] },
         // Keep the most recent 8 custom drawings to stay well under doc limits.
-        [`customAccessoriesByUser.${uid}`]: [...customs, entry].slice(-8),
+        customAccessoriesByUser: { [uid]: [...customs, entry].slice(-8) },
       },
       { merge: true },
     );
