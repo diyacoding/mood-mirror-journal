@@ -224,7 +224,7 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
 
 
       {/* Inventory + apply */}
-      {inventory.length > 0 && currentPet && (
+      {currentPet && (
         <div className="glass rounded-3xl p-5 space-y-3">
           <h3 className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Your accessories</h3>
           <div className="flex flex-wrap gap-2">
