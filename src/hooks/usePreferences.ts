@@ -14,10 +14,10 @@ export interface Preferences {
 const KEY = "mm.preferences";
 
 export const STICKER_SETS: { id: StickerSet; label: string; preview: string[] }[] = [
-  { id: "classic", label: "Classic", preview: ["😊", "😌", "😐", "😰", "😢"] },
-  { id: "pastel", label: "Pastel Hearts", preview: ["💛", "💙", "🤍", "💜", "💗"] },
-  { id: "cosmic", label: "Cosmic", preview: ["🌞", "🌙", "⭐", "☄️", "🌧️"] },
-  { id: "minimal", label: "Minimal", preview: ["●", "◐", "○", "◔", "◍"] },
+  { id: "classic", label: "Classic", preview: ["😊", "😌", "😐", "😰", "😣", "😔"] },
+  { id: "pastel", label: "Pastel Hearts", preview: ["💛", "💙", "🤍", "💜", "🧡", "💗"] },
+  { id: "cosmic", label: "Cosmic", preview: ["🌞", "🌙", "⭐", "☄️", "🌩️", "🌧️"] },
+  { id: "minimal", label: "Minimal", preview: ["●", "◐", "○", "◔", "◍", "◌"] },
 ];
 
 const DEFAULTS: Preferences = {
