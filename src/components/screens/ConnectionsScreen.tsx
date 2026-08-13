@@ -23,6 +23,7 @@ import type {
   ConnectionMood,
 } from "@/lib/connectionsTypes";
 import { MOODS, moodMeta, type MoodKey } from "@/lib/moodTypes";
+import { useIcons } from "@/lib/iconSets";
 import { MessageItem } from "@/components/connections/MessageItem";
 import { DrawingCanvas } from "@/components/connections/DrawingCanvas";
 import { format } from "date-fns";
@@ -261,7 +262,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
                       key={m.id}
                       className="glass rounded-2xl px-3 py-2 flex items-center gap-2 shrink-0"
                     >
-                      <span className="text-xl">{meta.emoji}</span>
+                      <span className="text-xl">{icons.mood(m.mood)}</span>
                       <div className="text-[10px]">
                         <div>{m.senderId === user.uid ? "You" : "Them"}</div>
                         <div className="text-muted-foreground">
@@ -337,7 +338,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
                   onClick={() => share(m.key)}
                   className="rounded-full glass px-3 py-2 text-sm hover:ring-glow transition-smooth"
                 >
-                  {m.emoji} {m.label}
+                  {icons.mood(m.key)} {m.label}
                 </button>
               ))}
             </div>

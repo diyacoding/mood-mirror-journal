@@ -22,6 +22,7 @@ interface Props {
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 export const CalendarScreen = ({ entries }: Props) => {
+  const icons = useIcons();
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<string | null>(null);
 

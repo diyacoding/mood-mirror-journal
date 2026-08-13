@@ -1,10 +1,12 @@
 import { Brain } from "lucide-react";
 import { moodMeta } from "@/lib/moodTypes";
+import { useIcons } from "@/lib/iconSets";
 import type { MoodPrediction } from "@/lib/reflectionAnalytics";
 
 interface Props { prediction: MoodPrediction | null }
 
 export const MoodPredictionCard = ({ prediction }: Props) => {
+  const icons = useIcons();
   return (
     <section className="rounded-3xl glass p-5 shadow-card space-y-4">
       <div className="flex items-center gap-2">
@@ -22,7 +24,7 @@ export const MoodPredictionCard = ({ prediction }: Props) => {
         <>
           <div className="flex items-center gap-4">
             <div className="text-5xl drop-shadow-[0_0_18px_hsl(270_96%_75%/0.45)]">
-              {moodMeta(prediction.predictedMood).emoji}
+              {icons.mood(prediction.predictedMood)}
             </div>
             <div className="flex-1">
               <div className="font-display text-lg tracking-widest">
