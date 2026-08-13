@@ -1,3 +1,4 @@
+import { useIcons } from "@/lib/iconSets";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { moodMeta, type MoodEntry } from "@/lib/moodTypes";
@@ -41,7 +42,7 @@ export const HistoryScreen = ({ entries, loading }: Props) => {
             const m = moodMeta(e.mood);
             return (
               <div key={e.id} className="rounded-2xl glass p-4 flex items-start gap-3 transition-smooth hover:ring-glow">
-                <span className="text-3xl drop-shadow-[0_0_14px_hsl(270_96%_75%/0.5)]">{m.emoji}</span>
+                <span className="text-3xl drop-shadow-[0_0_14px_hsl(270_96%_75%/0.5)]">{icons.mood(m.key)}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <div className="font-medium tracking-wide">{m.label}</div>

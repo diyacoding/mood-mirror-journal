@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useIcons } from "@/lib/iconSets";
 import { format } from "date-fns";
 import { Flame, Plus, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) 
   const todayMood = today ? moodMeta(today.mood) : null;
   const insights = useMemo(() => generateInsights(entries), [entries]);
   const recent = entries.slice(0, 5);
+  const icons = useIcons();
 
   return (
     <div className="px-5 pt-10 pb-32 space-y-6 animate-fade-in relative">
@@ -31,7 +33,7 @@ export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) 
       <header className="relative">
         <p className="text-[11px] uppercase tracking-[0.25em] text-accent/80">{format(new Date(), "EEEE · MMM d")}</p>
         <h1 className="font-display text-2xl mt-2 text-glow">
-          {todayMood ? `${todayMood.label} ${todayMood.emoji}` : "Reflect today"}
+          {todayMood ? `${todayMood.label} ${icons.mood(todayMood.key)}` : "Reflect today"}
         </h1>
       </header>
       {/* Streak — luxe glass card */}
@@ -70,7 +72,7 @@ export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) 
                 {todayMood?.label} · {today.intensity}/10
               </p>
             </div>
-            <span className="text-5xl drop-shadow-[0_0_20px_hsl(270_96%_75%/0.6)]">{todayMood?.emoji}</span>
+            <span className="text-5xl drop-shadow-[0_0_20px_hsl(270_96%_75%/0.6)]">{todayMood ? icons.mood(todayMood.key) : null}</span>
           </div>
           <Button onClick={onLogToday} variant="ghost" size="sm" className="mt-3 rounded-full text-accent hover:text-accent hover:bg-accent/10">
             Add another entry
@@ -100,7 +102,7 @@ export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) 
               const m = moodMeta(e.mood);
               return (
                 <div key={e.id} className="rounded-2xl glass px-4 py-3 flex items-center gap-3 transition-smooth hover:ring-glow">
-                  <span className="text-2xl drop-shadow-[0_0_12px_hsl(270_96%_75%/0.4)]">{m.emoji}</span>
+                  <span className="text-2xl drop-shadow-[0_0_12px_hsl(270_96%_75%/0.4)]">{icons.mood(m.key)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium">{m.label}</div>
                     <div className="text-xs text-muted-foreground">{format(new Date(e.createdAt), "EEE, MMM d · p")}</div>
