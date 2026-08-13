@@ -20,6 +20,7 @@ import type { PetOwnerDoc } from "@/lib/petTypes";
 interface Props { entries: MoodEntry[]; petOwner?: PetOwnerDoc | null }
 
 export const InsightsScreen = ({ entries, petOwner }: Props) => {
+  const icons = useIcons();
   const insights = useMemo(() => generateInsights(entries), [entries]);
   const reflectionTrend = useMemo(() => weeklyReflectionTrend(entries), [entries]);
   const prediction = useMemo(() => predictTomorrowMood(entries), [entries]);

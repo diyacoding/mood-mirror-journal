@@ -11,6 +11,7 @@ import {
   type DetectionResult,
 } from "@/lib/faceMood";
 import { MoodPicker } from "@/components/MoodPicker";
+import { useIcons } from "@/lib/iconSets";
 import { addMoodEntry, type MoodSaveResult } from "@/lib/moodApi";
 import { toast } from "sonner";
 
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export const ScanScreen = ({ onBack, onConfirm }: Props) => {
+  const icons = useIcons();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 

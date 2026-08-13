@@ -33,6 +33,7 @@ interface Props {
 }
 
 export const ConnectionsScreen = ({ user }: Props) => {
+  const icons = useIcons();
   const { connection, loading } = useConnection(user.uid);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
