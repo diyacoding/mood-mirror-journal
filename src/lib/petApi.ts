@@ -18,7 +18,7 @@ import {
 import type { Transaction } from "firebase/firestore";
 import { db, auth } from "./firebase";
 import { findMyConnection } from "./connectionsApi";
-import type { AccessoryKey, PetItem, PetOwnerDoc } from "./petTypes";
+import type { AccessoryId, AccessoryKey, CustomAccessory, PetItem, PetOwnerDoc } from "./petTypes";
 import { ACCESSORIES } from "./petTypes";
 
 const COL = "pets";
@@ -190,7 +190,7 @@ export async function createPet(
 
 export async function applyAccessory(
   uid: string,
-  accessory: AccessoryKey,
+  accessory: AccessoryId,
 ): Promise<void> {
   const info = await resolveOwnerKey(uid);
   const ownerSnap = await getDoc(ownerRef(info.key));
@@ -210,7 +210,7 @@ export async function applyAccessory(
 
 export async function removeAccessory(
   uid: string,
-  accessory: AccessoryKey,
+  accessory: AccessoryId,
 ): Promise<void> {
   const info = await resolveOwnerKey(uid);
   const ownerSnap = await getDoc(ownerRef(info.key));
@@ -221,8 +221,27 @@ export async function removeAccessory(
   await runTransaction(db, async (tx) => {
     const s = await tx.get(itemR);
     if (!s.exists()) return;
-    const cur: AccessoryKey[] = (s.data() as any).accessories ?? [];
+    const cur: AccessoryId[] = (s.data() as any).accessories ?? [];
     tx.update(itemR, { accessories: cur.filter((a) => a !== accessory) });
+  });
+}
+
+/** Persist a dragged accessory position (percent coords) on the current pet. */
+export async function setAccessoryPosition(
+  uid: string,
+  accessory: AccessoryId,
+  pos: { x: number; y: number },
+): Promise<void> {
+  const info = await resolveOwnerKey(uid);
+  const ownerSnap = await getDoc(ownerRef(info.key));
+  if (!ownerSnap.exists()) return;
+  const data = ownerSnap.data() as PetOwnerDoc;
+  if (!data.currentPetId) return;
+  await updateDoc(itemRef(info.key, data.currentPetId), {
+    [`accessoryPositions.${accessory}`]: {
+      x: Math.max(0, Math.min(100, pos.x)),
+      y: Math.max(0, Math.min(100, pos.y)),
+    },
   });
 }
 
@@ -337,19 +356,35 @@ export async function consumeSpin(uid: string): Promise<AccessoryKey | null> {
   return awarded;
 }
 
-export async function addCustomAccessoryToInventory(
+/**
+ * Save a user-drawn accessory. Stores the drawing itself (so it can be worn on the
+ * pet as real art rather than a generic emoji) and adds it to the user's inventory.
+ * Returns the new accessory id.
+ */
+export async function addCustomAccessory(
   uid: string,
-): Promise<void> {
-  // Custom drawings are surfaced as the "custom" accessory key.
+  imageDataUrl: string,
+): Promise<string> {
+  if (!imageDataUrl?.startsWith("data:image/")) throw new Error("Invalid drawing");
   const info = await resolveOwnerKey(uid);
+  await ensureOwnerDoc(uid);
   const ref = ownerRef(info.key);
+  const id = `custom:${Date.now()}`;
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
-    if (!snap.exists()) return;
-    const data = snap.data() as PetOwnerDoc;
-    const inv = (data.inventoryByUser ?? {})[uid] ?? [];
-    if (!inv.includes("custom")) {
-      tx.update(ref, { [`inventoryByUser.${uid}`]: [...inv, "custom"] });
-    }
+    const data = (snap.exists() ? snap.data() : {}) as PetOwnerDoc;
+    const inv: AccessoryId[] = (data.inventoryByUser ?? {})[uid] ?? [];
+    const customs: CustomAccessory[] = (data.customAccessoriesByUser ?? {})[uid] ?? [];
+    const entry: CustomAccessory = { id, imageDataUrl, createdAt: Date.now() };
+    tx.set(
+      ref,
+      {
+        inventoryByUser: { [uid]: [...inv, id] },
+        // Keep the most recent 8 custom drawings to stay well under doc limits.
+        customAccessoriesByUser: { [uid]: [...customs, entry].slice(-8) },
+      },
+      { merge: true },
+    );
   });
+  return id;
 }

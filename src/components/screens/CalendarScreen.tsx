@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { moodMeta } from "@/lib/moodTypes";
 import type { MoodEntry } from "@/lib/moodTypes";
+import { useIcons } from "@/lib/iconSets";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -21,6 +22,7 @@ interface Props {
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 export const CalendarScreen = ({ entries }: Props) => {
+  const icons = useIcons();
   const [cursor, setCursor] = useState(() => new Date());
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -99,7 +101,7 @@ export const CalendarScreen = ({ entries }: Props) => {
               >
                 <span className="text-[9px] text-muted-foreground leading-none">{format(d, "d")}</span>
                 {top ? (
-                  <span className="text-lg leading-none mt-0.5">{moodMeta(top.mood).emoji}</span>
+                  <span className="text-lg leading-none mt-0.5">{icons.mood(top.mood)}</span>
                 ) : (
                   <span className="h-[18px]" />
                 )}
@@ -127,7 +129,7 @@ export const CalendarScreen = ({ entries }: Props) => {
               return (
                 <div key={e.id} className="rounded-2xl glass p-4 space-y-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl">{m.emoji}</span>
+                    <span className="text-3xl">{icons.mood(m.key)}</span>
                     <div className="flex-1">
                       <div className="font-medium">{m.label}</div>
                       <div className="text-xs text-muted-foreground">

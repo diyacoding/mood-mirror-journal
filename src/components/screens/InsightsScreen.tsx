@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { MOODS, moodScore, type MoodEntry } from "@/lib/moodTypes";
+import { useIcons } from "@/lib/iconSets";
 import { generateInsights } from "@/lib/moodAnalytics";
 import {
   weeklyReflectionTrend,
@@ -19,6 +20,7 @@ import type { PetOwnerDoc } from "@/lib/petTypes";
 interface Props { entries: MoodEntry[]; petOwner?: PetOwnerDoc | null }
 
 export const InsightsScreen = ({ entries, petOwner }: Props) => {
+  const icons = useIcons();
   const insights = useMemo(() => generateInsights(entries), [entries]);
   const reflectionTrend = useMemo(() => weeklyReflectionTrend(entries), [entries]);
   const prediction = useMemo(() => predictTomorrowMood(entries), [entries]);
@@ -132,7 +134,7 @@ export const InsightsScreen = ({ entries, petOwner }: Props) => {
             const pct = total ? (m.count / total) * 100 : 0;
             return (
               <div key={m.key} className="flex items-center gap-3">
-                <span className="text-xl w-6 drop-shadow-[0_0_10px_hsl(270_96%_75%/0.4)]">{m.emoji}</span>
+                <span className="text-xl w-6 drop-shadow-[0_0_10px_hsl(270_96%_75%/0.4)]">{icons.mood(m.key)}</span>
                 <div className="flex-1 h-2 rounded-full bg-muted/60 overflow-hidden">
                   <div className="h-full rounded-full transition-smooth" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${m.color}, hsl(270 96% 75%))`, boxShadow: `0 0 12px ${m.color}` }} />
                 </div>

@@ -10,10 +10,12 @@ import {
   createPet,
   removeAccessory,
   selectPet,
-  addCustomAccessoryToInventory,
+  addCustomAccessory,
+  setAccessoryPosition,
 } from "@/lib/petApi";
-import { accessoryMeta } from "@/lib/petTypes";
-import type { AccessoryKey } from "@/lib/petTypes";
+import { accessoryMeta, isCustomAccessory } from "@/lib/petTypes";
+import type { AccessoryId, AccessoryPlacement } from "@/lib/petTypes";
+import { useIcons } from "@/lib/iconSets";
 import { PetDisplay } from "@/components/pet/PetDisplay";
 import { PetDrawingCanvas } from "@/components/pet/PetDrawingCanvas";
 import { AccessoryWheel } from "@/components/pet/AccessoryWheel";
@@ -28,6 +30,7 @@ interface Props {
 
 export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
   const { owner, items, currentPet, loading } = usePet(user.uid);
+  const icons = useIcons();
   const [creator, setCreator] = useState(false);
   const [customAccessory, setCustomAccessory] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
@@ -39,7 +42,10 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
   const toNextPet = 100 - (points % 100);
   const toNextSpin = 50 - (points % 50);
   const mySpins = owner?.spinsByUser?.[user.uid] ?? 0;
-  const inventory: AccessoryKey[] = owner?.inventoryByUser?.[user.uid] ?? [];
+  const inventory: AccessoryId[] = owner?.inventoryByUser?.[user.uid] ?? [];
+  const customArt: Record<string, string> = Object.fromEntries(
+    (owner?.customAccessoriesByUser?.[user.uid] ?? []).map((c) => [c.id, c.imageDataUrl]),
+  );
   const needsNew = !!owner?.pendingNewPet;
   const noPetYet = !currentPet && !loading && !needsNew;
   const shared = owner?.ownerType === "connection";
@@ -81,7 +87,7 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
     try {
       await createPet(user.uid, dataUrl);
       celebrate("pet-saved");
-      toast.success(shared ? "Pet hatched ✨ shared with your partner" : "Pet hatched ✨");
+      toast.success(shared ? "Pet hatched — shared with your partner" : "Pet hatched!");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not save pet");
     }
@@ -96,7 +102,7 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
     return reward;
   };
 
-  const toggle = async (a: AccessoryKey) => {
+  const toggle = async (a: AccessoryId) => {
     if (!currentPet) return;
     const on = currentPet.accessories.includes(a);
     if (on) await removeAccessory(user.uid, a);
@@ -104,10 +110,25 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
   };
 
   const handleCustomAccessory = async (dataUrl: string) => {
-    // Stored in inventory as the generic "custom" key; the drawn art lives implicitly per-user.
-    // For now we simply add the slot — full custom art slots can be expanded later.
-    await addCustomAccessoryToInventory(user.uid);
-    toast.success("Custom accessory added");
+    try {
+      const id = await addCustomAccessory(user.uid, dataUrl);
+      if (currentPet) {
+        await applyAccessory(user.uid, id);
+        toast.success("Custom accessory added — drag it into place on your pet");
+      } else {
+        toast.success("Custom accessory added");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not save accessory");
+    }
+  };
+
+  const handleMoveAccessory = async (a: AccessoryId, pos: AccessoryPlacement) => {
+    try {
+      await setAccessoryPosition(user.uid, a, pos);
+    } catch {
+      /* position is already reflected locally */
+    }
   };
 
   return (
@@ -123,7 +144,18 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
 
       {/* Hero pet */}
       <div className="relative glass-strong rounded-3xl p-6 shadow-glow flex flex-col items-center gap-4">
-        <PetDisplay pet={currentPet} level={level} />
+        <PetDisplay
+          pet={currentPet}
+          level={level}
+          customArt={customArt}
+          editable
+          onMoveAccessory={handleMoveAccessory}
+        />
+        {currentPet && (currentPet.accessories?.length ?? 0) > 0 && (
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Drag accessories to position them
+          </p>
+        )}
         <div className="text-center">
           <p className="font-display text-lg tracking-wider">
             {currentPet?.name ?? "Unhatched"}
@@ -186,19 +218,32 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
           variant="outline"
           className="w-full rounded-full glass border-accent/40 h-10 text-xs tracking-widest uppercase"
         >
-          🥚 Force Hatch Egg (debug)
+          {icons.misc("egg")} Force Hatch Egg (debug)
         </Button>
       </div>
 
 
       {/* Inventory + apply */}
-      {inventory.length > 0 && currentPet && (
+      {currentPet && (
         <div className="glass rounded-3xl p-5 space-y-3">
           <h3 className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Your accessories</h3>
           <div className="flex flex-wrap gap-2">
             {inventory.map((a) => {
-              const meta = accessoryMeta(a);
-              const on = currentPet.accessories.includes(a);
+              const custom = isCustomAccessory(a);
+              if (custom && !customArt[a]) return null;
+              if (a === "custom") {
+                // Legacy slot: the "draw your own" reward opens the accessory canvas.
+                return (
+                  <button
+                    key={a}
+                    onClick={() => setCustomAccessory(true)}
+                    className="rounded-full px-3 py-2 text-sm glass flex items-center gap-1.5 hover:scale-105"
+                  >
+                    <Wand2 className="h-4 w-4" /> Draw your own
+                  </button>
+                );
+              }
+              const on = (currentPet.accessories ?? []).includes(a);
               return (
                 <button
                   key={a}
@@ -208,8 +253,12 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
                     on ? "ring-glow border-accent/60" : "hover:scale-105",
                   )}
                 >
-                  <span className="text-lg">{meta.emoji}</span>
-                  {meta.label}
+                  {custom ? (
+                    <img src={customArt[a]} alt="Custom accessory" className="h-6 w-6 object-contain" />
+                  ) : (
+                    <span className="text-lg">{icons.accessory(a as any)}</span>
+                  )}
+                  {custom ? "My drawing" : accessoryMeta(a as any).label}
                 </button>
               );
             })}

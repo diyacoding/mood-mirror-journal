@@ -35,11 +35,29 @@ export const ACCESSORIES: AccessoryMeta[] = [
 export const accessoryMeta = (k: AccessoryKey) =>
   ACCESSORIES.find((a) => a.key === k) ?? ACCESSORIES[0];
 
+/** Accessory identifier: a built-in key, or `custom:<id>` for a user drawing. */
+export type AccessoryId = AccessoryKey | string;
+
+export const isCustomAccessory = (id: AccessoryId) => id.startsWith("custom:");
+
+export interface CustomAccessory {
+  id: string;              // `custom:<timestamp>`
+  imageDataUrl: string;    // the user's drawing, preserved as-is
+  createdAt: number;
+}
+
+export interface AccessoryPlacement {
+  x: number; // 0-100 percent of pet box width
+  y: number; // 0-100 percent of pet box height
+}
+
 export interface PetItem {
   id: string;
   name?: string;
   imageDataUrl: string;
-  accessories: AccessoryKey[];
+  accessories: AccessoryId[];
+  /** Saved drag positions per accessory id (percent of the pet box). */
+  accessoryPositions?: Record<string, AccessoryPlacement>;
   createdAt: number;
   createdBy: string;
 }
@@ -53,7 +71,9 @@ export interface PetOwnerDoc {
   currentPetId: string | null;
   pendingNewPet: boolean;
   spinsByUser: Record<string, number>;   // pending spins per uid
-  inventoryByUser: Record<string, AccessoryKey[]>;
+  inventoryByUser: Record<string, AccessoryId[]>;
+  /** User-drawn accessories, keyed by uid. */
+  customAccessoriesByUser?: Record<string, CustomAccessory[]>;
   milestone50: number;   // last 50-multiple awarded
   milestone100: number;  // last 100-multiple awarded
 }

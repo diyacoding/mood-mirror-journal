@@ -91,7 +91,12 @@ export const MessageItem = ({ connectionId, msg, selfId }: Props) => {
         {msg.type === "text" ? (
           <p className="whitespace-pre-wrap break-words">{msg.content}</p>
         ) : msg.drawingUrl ? (
-          <img src={msg.drawingUrl} alt="drawing" className="rounded-xl max-w-full" />
+          <img
+            src={msg.drawingUrl}
+            alt="drawing"
+            className="rounded-xl max-w-full"
+            style={{ background: "radial-gradient(circle, #2a0a4d, #1a0033)" }}
+          />
         ) : null}
       </div>
 

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { ACCESSORIES, accessoryMeta } from "@/lib/petTypes";
 import type { AccessoryKey } from "@/lib/petTypes";
+import { useIcons } from "@/lib/iconSets";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -11,7 +12,17 @@ interface Props {
   onClose: () => void;
 }
 
+const SEG = 360 / ACCESSORIES.length;
+const SLICE_COLORS = ["#7B2DFF", "#C084FC", "#E9D5FF"];
+
+// Discrete slices so each section aligns exactly with its accessory icon.
+const CONIC = `conic-gradient(from 0deg, ${ACCESSORIES.map((_, i) => {
+  const c = SLICE_COLORS[i % SLICE_COLORS.length];
+  return `${c} ${i * SEG}deg ${(i + 1) * SEG}deg`;
+}).join(", ")})`;
+
 export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
+  const icons = useIcons();
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<AccessoryKey | null>(null);
   const [rotation, setRotation] = useState(0);
@@ -20,13 +31,21 @@ export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
     if (spinning || spinsRemaining <= 0) return;
     setSpinning(true);
     setResult(null);
-    const targetTurns = 4 + Math.random() * 2;
-    setRotation((r) => r + targetTurns * 360);
-    // Run real spin while animation plays
-    const [reward] = await Promise.all([
-      onSpin(),
-      new Promise((res) => setTimeout(res, 1800)),
-    ]);
+
+    const reward = await onSpin();
+
+    // Land the won slice exactly under the top indicator.
+    const idx = Math.max(0, ACCESSORIES.findIndex((a) => a.key === reward));
+    const center = idx * SEG + SEG / 2;
+    setRotation((r) => {
+      const turns = 4 * 360;
+      const target = -center; // slice center rotates to 0deg (top)
+      const base = r + turns;
+      const delta = ((target - base) % 360 + 360) % 360;
+      return base + delta;
+    });
+
+    await new Promise((res) => setTimeout(res, 1850));
     setResult(reward);
     setSpinning(false);
   };
@@ -45,28 +64,28 @@ export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
           {spinsRemaining} spin{spinsRemaining === 1 ? "" : "s"} available
         </p>
 
-        <div className="relative mx-auto w-56 h-56">
+        <div className="relative mx-auto w-56 h-56 max-w-full">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 text-2xl z-10">▼</div>
           <div
             className="relative w-full h-full rounded-full ring-glow shadow-glow overflow-hidden"
             style={{
               transform: `rotate(${rotation}deg)`,
               transition: "transform 1.8s cubic-bezier(0.22, 1, 0.36, 1)",
-              background:
-                "conic-gradient(from 0deg, #7B2DFF, #C084FC, #E9D5FF, #7B2DFF, #C084FC, #E9D5FF, #7B2DFF, #C084FC, #E9D5FF, #7B2DFF)",
+              background: CONIC,
             }}
           >
             {ACCESSORIES.map((a, i) => {
-              const angle = (360 / ACCESSORIES.length) * i;
+              // Center of slice i, measured clockwise from the top (matches conic-gradient).
+              const angle = i * SEG + SEG / 2;
               return (
                 <span
                   key={a.key}
-                  className="absolute left-1/2 top-1/2 text-2xl"
+                  className="absolute left-1/2 top-1/2 text-2xl leading-none"
                   style={{
-                    transform: `rotate(${angle}deg) translateY(-80px) rotate(-${angle}deg)`,
+                    transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-80px) rotate(${-angle}deg)`,
                   }}
                 >
-                  {a.emoji}
+                  {icons.accessory(a.key)}
                 </span>
               );
             })}
@@ -75,7 +94,7 @@ export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
 
         {result && !spinning && (
           <div className="space-y-2 animate-fade-in">
-            <div className="text-5xl">{accessoryMeta(result).emoji}</div>
+            <div className="text-5xl">{icons.accessory(result)}</div>
             <p className="font-display text-lg text-glow tracking-wider">
               {accessoryMeta(result).label}!
             </p>

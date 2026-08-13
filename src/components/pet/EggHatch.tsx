@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useIcons } from "@/lib/iconSets";
 
 interface Props {
   onDone: () => void;
@@ -7,6 +8,7 @@ interface Props {
 // Three-stage celebratory hatch sequence:
 // 1) shake  2) crack  3) burst + confetti  → onDone (open creator)
 export const EggHatch = ({ onDone }: Props) => {
+  const icons = useIcons();
   const [stage, setStage] = useState<"shake" | "crack" | "burst">("shake");
 
   useEffect(() => {
@@ -22,7 +24,10 @@ export const EggHatch = ({ onDone }: Props) => {
     const distance = 120 + Math.random() * 80;
     const dx = Math.cos(angle) * distance;
     const dy = Math.sin(angle) * distance;
-    const emojis = ["✨", "🎉", "💜", "💖", "⭐", "🌟", "🩷"];
+    const emojis = [
+      icons.misc("spark"), icons.misc("party"), icons.misc("heart"),
+      icons.misc("star"), icons.misc("spark"), icons.misc("heart"), icons.misc("star"),
+    ];
     const emoji = emojis[i % emojis.length];
     const delay = Math.random() * 0.15;
     return { dx, dy, emoji, delay, key: i };
@@ -67,7 +72,7 @@ export const EggHatch = ({ onDone }: Props) => {
               className={stage === "shake" ? "egg-shake text-[8rem] leading-none" : "text-[8rem] leading-none"}
               style={{ filter: "drop-shadow(0 0 30px hsl(270 96% 70% / 0.7))" }}
             >
-              {stage === "crack" ? "🐣" : "🥚"}
+              {stage === "crack" ? icons.misc("hatching") : icons.misc("egg")}
             </div>
           ) : (
             <>
@@ -75,7 +80,7 @@ export const EggHatch = ({ onDone }: Props) => {
                 className="absolute egg-burst text-[8rem] leading-none"
                 style={{ filter: "drop-shadow(0 0 40px hsl(270 96% 75% / 0.9))" }}
               >
-                🥚
+                {icons.misc("egg")}
               </div>
               {confetti.map((c) => (
                 <span
@@ -102,7 +107,7 @@ export const EggHatch = ({ onDone }: Props) => {
             {stage === "burst" && "Your pet has hatched!"}
           </p>
           {stage === "burst" && (
-            <p className="text-sm text-accent/80">Design your new companion ✨</p>
+            <p className="text-sm text-accent/80">Design your new companion {icons.misc("spark")}</p>
           )}
         </div>
       </div>

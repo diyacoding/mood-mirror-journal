@@ -11,6 +11,7 @@ import {
   type DetectionResult,
 } from "@/lib/faceMood";
 import { MoodPicker } from "@/components/MoodPicker";
+import { useIcons } from "@/lib/iconSets";
 import { addMoodEntry, type MoodSaveResult } from "@/lib/moodApi";
 import { toast } from "sonner";
 
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export const ScanScreen = ({ onBack, onConfirm }: Props) => {
+  const icons = useIcons();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -140,7 +142,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
           <div className="rounded-3xl glass-strong p-6 shadow-glow text-center">
             {detected ? (
               <>
-                <div className="text-6xl drop-shadow-[0_0_24px_hsl(270_96%_75%/0.6)]">{detected.emoji}</div>
+                <div className="text-6xl drop-shadow-[0_0_24px_hsl(270_96%_75%/0.6)]">{icons.mood(detected.key)}</div>
                 <div className="font-display text-xl mt-3 tracking-widest text-glow">{detected.label}</div>
                 <p className="text-xs text-accent/80 mt-2 uppercase tracking-[0.2em]">
                   Confidence · {Math.round((result.confidence ?? 0) * 100)}%

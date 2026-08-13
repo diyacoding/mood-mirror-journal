@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Eraser, Paintbrush, Send, X, Minus, Circle, Dot, Sparkles, Wind, Zap, Heart } from "lucide-react";
+import { Eraser, Paintbrush, Send, X, Minus, Circle, Dot, Sparkles, Wind, Zap, Heart, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -8,7 +8,9 @@ interface Props {
   onClose: () => void;
 }
 
-const BG = "#1a0033";
+// The canvas itself stays transparent; the purple look comes from CSS behind it.
+// This guarantees erased areas export as fully transparent pixels.
+const CANVAS_BG_CSS = "radial-gradient(circle, #2a0a4d, #1a0033)";
 
 const PALETTE = [
   { name: "Soft gray", hex: "#C8C8D8" },
@@ -75,12 +77,41 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
   const [eraser, setEraser] = useState(false);
   const [size, setSize] = useState(8);
   const [brushStyle, setBrushStyle] = useState<BrushStyleKey>("soft");
+  const history = useRef<ImageData[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+
+  const pushHistory = () => {
+    const c = canvasRef.current;
+    const ctx = c?.getContext("2d");
+    if (!c || !ctx) return;
+    history.current.push(ctx.getImageData(0, 0, c.width, c.height));
+    if (history.current.length > 30) history.current.shift();
+    setCanUndo(true);
+  };
+
+  const undo = () => {
+    const c = canvasRef.current;
+    const ctx = c?.getContext("2d");
+    if (!c || !ctx) return;
+    const prev = history.current.pop();
+    if (!prev) {
+      setCanUndo(false);
+      return;
+    }
+    const prevOp = ctx.globalCompositeOperation;
+    const prevAlpha = ctx.globalAlpha;
+    ctx.globalCompositeOperation = "copy";
+    ctx.globalAlpha = 1;
+    ctx.putImageData(prev, 0, 0);
+    ctx.globalCompositeOperation = prevOp;
+    ctx.globalAlpha = prevAlpha;
+    setCanUndo(history.current.length > 0);
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = BG;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.strokeStyle = color;
@@ -116,6 +147,7 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
   };
 
   const onDown = (e: React.PointerEvent) => {
+    pushHistory();
     drawing.current = true;
     const ctx = canvasRef.current!.getContext("2d")!;
     const { x, y } = pos(e);
@@ -144,9 +176,9 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
   const clear = () => {
     const c = canvasRef.current!;
     const ctx = c.getContext("2d")!;
+    pushHistory();
     ctx.globalCompositeOperation = "source-over";
-    ctx.fillStyle = BG;
-    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.clearRect(0, 0, c.width, c.height);
     // Restore tool state after clear
     if (eraser) {
       ctx.globalCompositeOperation = "destination-out";
@@ -242,6 +274,7 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
           onPointerUp={onUp}
           onPointerLeave={onUp}
           className="w-full aspect-square rounded-2xl touch-none ring-glow"
+          style={{ background: CANVAS_BG_CSS }}
         />
 
         {/* Tool Row: Brush / Eraser Toggle + Size */}
@@ -275,8 +308,22 @@ export const DrawingCanvas = ({ onSend, onClose }: Props) => {
             </button>
           </div>
 
-          {/* Size selector */}
+          {/* Undo + size selector */}
           <div className="flex items-center gap-1">
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              title="Undo"
+              aria-label="Undo"
+              className={cn(
+                "h-9 px-3 rounded-full text-xs flex items-center gap-1.5 transition-smooth border",
+                canUndo
+                  ? "border-white/40 bg-white/10 text-foreground"
+                  : "border-transparent text-muted-foreground/50",
+              )}
+            >
+              <Undo2 className="h-3.5 w-3.5" /> Undo
+            </button>
             {SIZES.map((s) => {
               const Icon = s.icon;
               return (
