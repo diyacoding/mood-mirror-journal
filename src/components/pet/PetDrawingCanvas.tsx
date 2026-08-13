@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Eraser, Paintbrush, Check, X } from "lucide-react";
+import { Eraser, Paintbrush, Check, X, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -23,6 +23,33 @@ export const PetDrawingCanvas = ({ title = "Create your pet", onSave, onClose }:
   const [eraser, setEraser] = useState(false);
   const [size, setSize] = useState(10);
   const [busy, setBusy] = useState(false);
+  const history = useRef<ImageData[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+
+  const pushHistory = () => {
+    const c = canvasRef.current;
+    const ctx = c?.getContext("2d");
+    if (!c || !ctx) return;
+    history.current.push(ctx.getImageData(0, 0, c.width, c.height));
+    if (history.current.length > 30) history.current.shift();
+    setCanUndo(true);
+  };
+
+  const undo = () => {
+    const c = canvasRef.current;
+    const ctx = c?.getContext("2d");
+    if (!c || !ctx) return;
+    const prev = history.current.pop();
+    if (!prev) {
+      setCanUndo(false);
+      return;
+    }
+    const prevOp = ctx.globalCompositeOperation;
+    ctx.globalCompositeOperation = "copy";
+    ctx.putImageData(prev, 0, 0);
+    ctx.globalCompositeOperation = prevOp;
+    setCanUndo(history.current.length > 0);
+  };
 
   useEffect(() => {
     const c = canvasRef.current!;
@@ -56,6 +83,7 @@ export const PetDrawingCanvas = ({ title = "Create your pet", onSave, onClose }:
     };
   };
   const onDown = (e: React.PointerEvent) => {
+    pushHistory();
     drawing.current = true;
     const ctx = canvasRef.current!.getContext("2d")!;
     const { x, y } = pos(e);
@@ -76,6 +104,7 @@ export const PetDrawingCanvas = ({ title = "Create your pet", onSave, onClose }:
 
   const clear = () => {
     const c = canvasRef.current!;
+    pushHistory();
     c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
   };
 
@@ -134,6 +163,14 @@ export const PetDrawingCanvas = ({ title = "Create your pet", onSave, onClose }:
             className={cn("h-9 px-3 rounded-full text-xs flex items-center gap-1.5 border",
               eraser ? "border-white/40 bg-white/10" : "border-transparent text-muted-foreground")}
           ><Eraser className="h-3.5 w-3.5" /> Eraser</button>
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            title="Undo"
+            aria-label="Undo"
+            className={cn("h-9 px-3 rounded-full text-xs flex items-center gap-1.5 border",
+              canUndo ? "border-white/40 bg-white/10" : "border-transparent text-muted-foreground/50")}
+          ><Undo2 className="h-3.5 w-3.5" /> Undo</button>
           {[4, 10, 20].map((s) => (
             <button key={s} onClick={() => setSize(s)}
               className={cn("h-8 w-8 rounded-full border text-xs",
