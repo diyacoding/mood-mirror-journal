@@ -153,7 +153,7 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
         />
         {currentPet && (currentPet.accessories?.length ?? 0) > 0 && (
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Drag accessories to position them
+            Tap an accessory to select it — drag to move, handles to resize & rotate
           </p>
         )}
         <div className="text-center">

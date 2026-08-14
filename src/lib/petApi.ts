@@ -230,7 +230,7 @@ export async function removeAccessory(
 export async function setAccessoryPosition(
   uid: string,
   accessory: AccessoryId,
-  pos: { x: number; y: number },
+  pos: { x: number; y: number; scale?: number; rotation?: number },
 ): Promise<void> {
   const info = await resolveOwnerKey(uid);
   const ownerSnap = await getDoc(ownerRef(info.key));
@@ -241,6 +241,8 @@ export async function setAccessoryPosition(
     [`accessoryPositions.${accessory}`]: {
       x: Math.max(0, Math.min(100, pos.x)),
       y: Math.max(0, Math.min(100, pos.y)),
+      scale: Math.max(0.3, Math.min(3, pos.scale ?? 1)),
+      rotation: ((pos.rotation ?? 0) % 360 + 360) % 360,
     },
   });
 }
