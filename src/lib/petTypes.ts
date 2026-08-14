@@ -49,6 +49,10 @@ export interface CustomAccessory {
 export interface AccessoryPlacement {
   x: number; // 0-100 percent of pet box width
   y: number; // 0-100 percent of pet box height
+  /** Uniform scale multiplier (proportions preserved). Default 1. */
+  scale?: number;
+  /** Rotation in degrees. Default 0. */
+  rotation?: number;
 }
 
 export interface PetItem {
