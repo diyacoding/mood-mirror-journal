@@ -266,6 +266,7 @@ export const PetDisplay = ({
                 <span
                   onPointerDown={startGesture(a, "rotate")}
                   aria-label="Rotate accessory"
+                  style={{ transform: `scale(${1 / (p.scale ?? 1)})` }}
                   className="absolute -top-4 -right-4 h-6 w-6 rounded-full glass-strong border border-accent/60 flex items-center justify-center cursor-grab touch-none shadow-glow"
                 >
                   <RotateCw className="h-3 w-3 text-accent" />
@@ -274,6 +275,7 @@ export const PetDisplay = ({
                 <span
                   onPointerDown={startGesture(a, "resize")}
                   aria-label="Resize accessory"
+                  style={{ transform: `scale(${1 / (p.scale ?? 1)})` }}
                   className="absolute -bottom-4 -right-4 h-6 w-6 rounded-full glass-strong border border-accent/60 flex items-center justify-center cursor-nwse-resize touch-none shadow-glow"
                 >
                   <Maximize2 className="h-3 w-3 text-accent" />
