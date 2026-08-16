@@ -70,7 +70,7 @@ export const EggHatch = ({ onDone }: Props) => {
           {stage !== "burst" ? (
             <div
               className={stage === "shake" ? "egg-shake text-[8rem] leading-none" : "text-[8rem] leading-none"}
-              style={{ filter: "drop-shadow(0 0 30px hsl(270 96% 70% / 0.7))" }}
+              style={{ filter: "drop-shadow(0 0 30px hsl(var(--glow) / 0.7))" }}
             >
               {stage === "crack" ? icons.misc("hatching") : icons.misc("egg")}
             </div>
@@ -78,7 +78,7 @@ export const EggHatch = ({ onDone }: Props) => {
             <>
               <div
                 className="absolute egg-burst text-[8rem] leading-none"
-                style={{ filter: "drop-shadow(0 0 40px hsl(270 96% 75% / 0.9))" }}
+                style={{ filter: "drop-shadow(0 0 40px hsl(var(--glow) / 0.9))" }}
               >
                 {icons.misc("egg")}
               </div>

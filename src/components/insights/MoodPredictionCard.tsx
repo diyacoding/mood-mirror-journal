@@ -23,7 +23,7 @@ export const MoodPredictionCard = ({ prediction }: Props) => {
       ) : (
         <>
           <div className="flex items-center gap-4">
-            <div className="text-5xl drop-shadow-[0_0_18px_hsl(270_96%_75%/0.45)]">
+            <div className="text-5xl drop-shadow-[0_0_18px_hsl(var(--glow)/0.45)]">
               {icons.mood(prediction.predictedMood)}
             </div>
             <div className="flex-1">
@@ -47,8 +47,8 @@ export const MoodPredictionCard = ({ prediction }: Props) => {
               className="h-full rounded-full"
               style={{
                 width: `${prediction.confidence}%`,
-                background: "linear-gradient(90deg, hsl(264 100% 65%), hsl(285 100% 75%))",
-                boxShadow: "0 0 10px hsl(270 96% 65% / 0.6)",
+                background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary-glow)))",
+                boxShadow: "0 0 10px hsl(var(--glow-deep) / 0.6)",
               }}
             />
           </div>

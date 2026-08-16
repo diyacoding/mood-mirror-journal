@@ -150,7 +150,7 @@ export const PetDrawingCanvas = ({ title = "Create your pet", onSave, onClose }:
           onPointerUp={onUp}
           onPointerLeave={onUp}
           className="w-full aspect-square rounded-2xl touch-none ring-glow"
-          style={{ background: "radial-gradient(circle, hsl(270 60% 14%), hsl(268 100% 6%))" }}
+          style={{ background: "radial-gradient(circle, hsl(var(--secondary)), hsl(var(--background)))" }}
         />
         <div className="flex items-center justify-center gap-2">
           <button

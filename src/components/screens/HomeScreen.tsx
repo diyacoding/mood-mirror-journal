@@ -72,7 +72,7 @@ export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) 
                 {todayMood?.label} · {today.intensity}/10
               </p>
             </div>
-            <span className="text-5xl drop-shadow-[0_0_20px_hsl(270_96%_75%/0.6)]">{todayMood ? icons.mood(todayMood.key) : null}</span>
+            <span className="text-5xl drop-shadow-[0_0_20px_hsl(var(--glow)/0.6)]">{todayMood ? icons.mood(todayMood.key) : null}</span>
           </div>
           <Button onClick={onLogToday} variant="ghost" size="sm" className="mt-3 rounded-full text-accent hover:text-accent hover:bg-accent/10">
             Add another entry
@@ -102,7 +102,7 @@ export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) 
               const m = moodMeta(e.mood);
               return (
                 <div key={e.id} className="rounded-2xl glass px-4 py-3 flex items-center gap-3 transition-smooth hover:ring-glow">
-                  <span className="text-2xl drop-shadow-[0_0_12px_hsl(270_96%_75%/0.4)]">{icons.mood(m.key)}</span>
+                  <span className="text-2xl drop-shadow-[0_0_12px_hsl(var(--glow)/0.4)]">{icons.mood(m.key)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium">{m.label}</div>
                     <div className="text-xs text-muted-foreground">{format(new Date(e.createdAt), "EEE, MMM d · p")}</div>

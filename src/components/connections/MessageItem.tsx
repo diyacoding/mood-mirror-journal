@@ -60,7 +60,7 @@ export const MessageItem = ({ connectionId, msg, selfId }: Props) => {
           <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-primary/60 to-primary/20"
                style={{ clipPath: "polygon(0 0, 100% 0, 50% 100%)" }} />
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-            <Mail className="h-7 w-7 text-accent drop-shadow-[0_0_12px_hsl(270_96%_75%/0.7)] animate-glow-pulse" />
+            <Mail className="h-7 w-7 text-accent drop-shadow-[0_0_12px_hsl(var(--glow)/0.7)] animate-glow-pulse" />
             <span className="text-[10px] uppercase tracking-[0.25em] text-accent/90">
               New letter — tap to open
             </span>

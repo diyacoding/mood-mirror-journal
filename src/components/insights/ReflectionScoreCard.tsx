@@ -14,8 +14,8 @@ const Bar = ({ label, value }: { label: string; value: number }) => (
         className="h-full rounded-full transition-smooth"
         style={{
           width: `${value}%`,
-          background: "linear-gradient(90deg, hsl(264 100% 65%), hsl(285 100% 75%))",
-          boxShadow: "0 0 10px hsl(270 96% 65% / 0.6)",
+          background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary-glow)))",
+          boxShadow: "0 0 10px hsl(var(--glow-deep) / 0.6)",
         }}
       />
     </div>
