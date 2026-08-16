@@ -29,6 +29,7 @@ import { deleteMoodEntry } from "@/lib/moodApi";
 import type { MoodEntry } from "@/lib/moodTypes";
 import { toast } from "sonner";
 import { useTheme } from "@/hooks/useTheme";
+import { LIGHT_HUES, DARK_HUES, type HueOption } from "@/lib/themeHue";
 import { usePreferences, STICKER_SETS } from "@/hooks/usePreferences";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +91,45 @@ const ToggleRow = ({
       <p className="text-xs text-muted-foreground font-light">{hint}</p>
     </div>
     <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
+  </div>
+);
+
+const HuePicker = ({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: HueOption[];
+  value: string;
+  onChange: (id: string) => void;
+}) => (
+  <div>
+    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">{label}</p>
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          aria-pressed={value === o.id}
+          title={o.label}
+          className={cn(
+            "flex items-center gap-2 rounded-full border px-3 py-2 text-xs min-h-11 transition-smooth",
+            value === o.id
+              ? "bg-primary/20 border-accent/50 ring-1 ring-accent/40 text-foreground"
+              : "glass border-transparent text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <span
+            className="h-4 w-4 rounded-full border border-border"
+            style={{ background: o.swatch }}
+          />
+          {o.label}
+        </button>
+      ))}
+    </div>
   </div>
 );
 
@@ -183,6 +223,47 @@ export const SettingsScreen = ({ entries }: Props) => {
           >
             <Sun className="h-4 w-4" /> Light Mode
           </button>
+        </div>
+      </Card>
+
+      {/* Theme hue */}
+      <Card
+        icon={<Palette className="h-5 w-5" />}
+        title="Theme colour"
+        subtitle="Pick a hue for Light Mode and Dark Mode independently."
+      >
+        <div className="mt-4 space-y-5">
+          <HuePicker
+            label="Light Mode hue"
+            options={LIGHT_HUES}
+            value={prefs.lightHue}
+            onChange={(id) => update({ lightHue: id })}
+          />
+          <HuePicker
+            label="Dark Mode hue"
+            options={DARK_HUES}
+            value={prefs.darkHue}
+            onChange={(id) => update({ darkHue: id })}
+          />
+          <div className="flex items-center gap-3">
+            <div
+              className="h-10 flex-1 rounded-2xl border border-border"
+              style={{ background: "var(--gradient-primary)" }}
+              aria-label="Current theme preview"
+            />
+            <div className="h-10 w-10 rounded-2xl border border-border bg-card" />
+            <div className="h-10 w-10 rounded-2xl border border-border bg-accent" />
+            <button
+              type="button"
+              onClick={() => {
+                update({ lightHue: "default", darkHue: "default" });
+                toast.success("Theme colours reset");
+              }}
+              className="rounded-2xl glass px-3 py-2 text-xs min-h-11 text-muted-foreground hover:text-foreground transition-smooth"
+            >
+              Reset
+            </button>
+          </div>
         </div>
       </Card>
 
