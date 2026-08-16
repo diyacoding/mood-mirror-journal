@@ -186,6 +186,47 @@ export const SettingsScreen = ({ entries }: Props) => {
         </div>
       </Card>
 
+      {/* Theme hue */}
+      <Card
+        icon={<Palette className="h-5 w-5" />}
+        title="Theme colour"
+        subtitle="Pick a hue for Light Mode and Dark Mode independently."
+      >
+        <div className="mt-4 space-y-5">
+          <HuePicker
+            label="Light Mode hue"
+            options={LIGHT_HUES}
+            value={prefs.lightHue}
+            onChange={(id) => update({ lightHue: id })}
+          />
+          <HuePicker
+            label="Dark Mode hue"
+            options={DARK_HUES}
+            value={prefs.darkHue}
+            onChange={(id) => update({ darkHue: id })}
+          />
+          <div className="flex items-center gap-3">
+            <div
+              className="h-10 flex-1 rounded-2xl border border-border"
+              style={{ background: "var(--gradient-primary)" }}
+              aria-label="Current theme preview"
+            />
+            <div className="h-10 w-10 rounded-2xl border border-border bg-card" />
+            <div className="h-10 w-10 rounded-2xl border border-border bg-accent" />
+            <button
+              type="button"
+              onClick={() => {
+                update({ lightHue: "default", darkHue: "default" });
+                toast.success("Theme colours reset");
+              }}
+              className="rounded-2xl glass px-3 py-2 text-xs min-h-11 text-muted-foreground hover:text-foreground transition-smooth"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </Card>
+
       {/* Sticker Set */}
       <Card icon={null} title="Sticker set" subtitle="Pick the icon style for your moods.">
         <div className="mt-4 grid grid-cols-2 gap-2">
