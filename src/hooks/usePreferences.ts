@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { applyThemeHues } from "@/lib/themeHue";
 
 export type StickerSet = "classic" | "pastel" | "cosmic" | "minimal";
 
@@ -9,6 +10,10 @@ export interface Preferences {
   stickerSet: StickerSet;
   reminders: boolean;
   reminderTime: string;
+  /** Hue id for the light-mode palette ("default" = original lavender). */
+  lightHue: string;
+  /** Hue id for the dark-mode palette ("default" = original dark purple). */
+  darkHue: string;
 }
 
 const KEY = "mm.preferences";
@@ -27,6 +32,8 @@ const DEFAULTS: Preferences = {
   stickerSet: "classic",
   reminders: false,
   reminderTime: "21:00",
+  lightHue: "default",
+  darkHue: "default",
 };
 
 function read(): Preferences {
@@ -57,6 +64,7 @@ export function applyPreferences(p: Preferences) {
   root.classList.toggle("pref-large-text", p.largerText);
   root.classList.toggle("pref-reduce-motion", p.reduceMotion);
   root.classList.toggle("pref-high-contrast", p.highContrast);
+  applyThemeHues(p.lightHue, p.darkHue);
 }
 
 export function getInitialPreferences(): Preferences {
