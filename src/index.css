@@ -73,6 +73,15 @@ h1, h2, h3 {
 
     --transition-smooth: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 
+    /* Shell + glass surfaces (hue-shiftable) */
+    --shell: linear-gradient(to bottom, hsl(268 100% 6%), hsl(272 100% 9%), hsl(270 100% 2%));
+    --glass-bg: linear-gradient(135deg, hsl(270 60% 18% / 0.55), hsl(270 60% 10% / 0.35));
+    --glass-border-color: hsl(270 96% 75% / 0.15);
+    --glass-strong-bg: linear-gradient(135deg, hsl(270 70% 22% / 0.7), hsl(270 60% 12% / 0.5));
+    --glass-strong-border-color: hsl(270 96% 75% / 0.22);
+    --glow: 270 96% 75%;
+    --glow-deep: 264 100% 59%;
+
     --sidebar-background: 270 60% 8%;
     --sidebar-foreground: 270 80% 90%;
     --sidebar-primary: 264 100% 59%;
@@ -125,6 +134,15 @@ h1, h2, h3 {
     --shadow-soft: 0 8px 40px -12px hsl(270 60% 40% / 0.18);
     --shadow-glow: 0 0 40px hsl(270 90% 68% / 0.35), 0 0 80px hsl(264 85% 55% / 0.15);
     --shadow-card: 0 10px 30px -12px hsl(270 60% 40% / 0.22);
+
+    /* Shell + glass surfaces (hue-shiftable) */
+    --shell: linear-gradient(to bottom, hsl(285 75% 97%), hsl(280 70% 93%), hsl(275 65% 90%));
+    --glass-bg: linear-gradient(135deg, hsl(0 0% 100% / 0.75), hsl(285 70% 97% / 0.6));
+    --glass-border-color: hsl(270 60% 55% / 0.18);
+    --glass-strong-bg: linear-gradient(135deg, hsl(0 0% 100% / 0.9), hsl(285 70% 96% / 0.75));
+    --glass-strong-border-color: hsl(270 60% 55% / 0.25);
+    --glow: 270 90% 68%;
+    --glow-deep: 264 85% 55%;
 
     --sidebar-background: 280 60% 96%;
     --sidebar-foreground: 270 55% 22%;
@@ -205,45 +223,33 @@ h1, h2, h3 {
 
   /* Glassmorphism */
   .glass {
-    background: linear-gradient(135deg, hsl(270 60% 18% / 0.55), hsl(270 60% 10% / 0.35));
+    background: var(--glass-bg);
     backdrop-filter: blur(22px) saturate(160%);
     -webkit-backdrop-filter: blur(22px) saturate(160%);
-    border: 1px solid hsl(270 96% 75% / 0.15);
+    border: 1px solid var(--glass-border-color);
   }
   .glass-strong {
-    background: linear-gradient(135deg, hsl(270 70% 22% / 0.7), hsl(270 60% 12% / 0.5));
+    background: var(--glass-strong-bg);
     backdrop-filter: blur(28px) saturate(180%);
     -webkit-backdrop-filter: blur(28px) saturate(180%);
-    border: 1px solid hsl(270 96% 75% / 0.22);
-  }
-  html.light .glass {
-    background: linear-gradient(135deg, hsl(0 0% 100% / 0.75), hsl(285 70% 97% / 0.6));
-    border: 1px solid hsl(270 60% 55% / 0.18);
-  }
-  html.light .glass-strong {
-    background: linear-gradient(135deg, hsl(0 0% 100% / 0.9), hsl(285 70% 96% / 0.75));
-    border: 1px solid hsl(270 60% 55% / 0.25);
+    border: 1px solid var(--glass-strong-border-color);
   }
   .text-glow {
-    text-shadow: 0 0 24px hsl(270 96% 75% / 0.6), 0 0 48px hsl(264 100% 59% / 0.35);
+    text-shadow: 0 0 24px hsl(var(--glow) / 0.6), 0 0 48px hsl(var(--glow-deep) / 0.35);
   }
   html.light .text-glow {
-    text-shadow: 0 0 18px hsl(270 90% 68% / 0.35);
+    text-shadow: 0 0 18px hsl(var(--glow) / 0.35);
   }
   .ring-glow {
-    box-shadow: 0 0 0 1px hsl(270 96% 75% / 0.35), 0 0 32px hsl(270 96% 75% / 0.45);
+    box-shadow: 0 0 0 1px hsl(var(--glow) / 0.35), 0 0 32px hsl(var(--glow) / 0.45);
   }
   html.light .ring-glow {
-    box-shadow: 0 0 0 1px hsl(270 70% 55% / 0.3), 0 0 24px hsl(270 85% 65% / 0.3);
+    box-shadow: 0 0 0 1px hsl(var(--glow-deep) / 0.3), 0 0 24px hsl(var(--glow) / 0.3);
   }
 
   /* Theme-aware app shell background */
   .app-shell {
-    background: linear-gradient(to bottom, #0D001F, #140028, #000000);
-    color: hsl(var(--foreground));
-  }
-  html.light .app-shell {
-    background: linear-gradient(to bottom, hsl(285 75% 97%), hsl(280 70% 93%), hsl(275 65% 90%));
+    background: var(--shell);
     color: hsl(var(--foreground));
   }
 

@@ -38,7 +38,7 @@ export const AuthScreen = () => {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden bg-gradient-to-b from-[#0D001F] via-[#140028] to-black text-purple-100">
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden app-shell">
       <div className="absolute -top-40 -left-40 w-[28rem] h-[28rem] rounded-full gradient-glow blur-3xl opacity-60" />
       <div className="absolute -bottom-40 -right-40 w-[28rem] h-[28rem] rounded-full gradient-glow blur-3xl opacity-40" />
 

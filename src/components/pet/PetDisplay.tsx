@@ -234,7 +234,7 @@ export const PetDisplay = ({
             key={a}
             onPointerDown={startGesture(a, "move")}
             className={cn(
-              "absolute select-none drop-shadow-[0_0_12px_hsl(270_96%_75%/0.6)]",
+              "absolute select-none drop-shadow-[0_0_12px_hsl(var(--glow)/0.6)]",
               custom ? "block" : "text-3xl leading-none",
               editable ? "cursor-grab touch-none" : "pointer-events-none",
               isSel && "z-20",

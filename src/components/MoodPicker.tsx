@@ -27,7 +27,7 @@ export const MoodPicker = ({ value, onChange, size = "md" }: Props) => {
                 : "hover:border-accent/40 hover:scale-[1.02]",
             )}
           >
-            <span className={cn("drop-shadow-[0_0_12px_hsl(270_96%_75%/0.45)]", size === "md" ? "text-3xl" : "text-2xl")}>{icons.mood(m.key)}</span>
+            <span className={cn("drop-shadow-[0_0_12px_hsl(var(--glow)/0.45)]", size === "md" ? "text-3xl" : "text-2xl")}>{icons.mood(m.key)}</span>
             <span className="text-xs font-medium text-foreground/90 tracking-wide">{m.label}</span>
           </button>
         );

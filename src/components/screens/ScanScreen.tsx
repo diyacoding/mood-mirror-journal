@@ -125,7 +125,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
       <div className="aspect-square rounded-[2rem] overflow-hidden bg-muted shadow-glow relative ring-glow">
         <video ref={videoRef} className="w-full h-full object-cover scale-x-[-1]" muted playsInline />
         {/* Scanning aura */}
-        <div className="absolute inset-0 pointer-events-none rounded-[2rem]" style={{ boxShadow: "inset 0 0 80px hsl(270 96% 65% / 0.4)" }} />
+        <div className="absolute inset-0 pointer-events-none rounded-[2rem]" style={{ boxShadow: "inset 0 0 80px hsl(var(--glow-deep) / 0.4)" }} />
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground glass-strong">
             Loading model…
@@ -142,7 +142,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
           <div className="rounded-3xl glass-strong p-6 shadow-glow text-center">
             {detected ? (
               <>
-                <div className="text-6xl drop-shadow-[0_0_24px_hsl(270_96%_75%/0.6)]">{icons.mood(detected.key)}</div>
+                <div className="text-6xl drop-shadow-[0_0_24px_hsl(var(--glow)/0.6)]">{icons.mood(detected.key)}</div>
                 <div className="font-display text-xl mt-3 tracking-widest text-glow">{detected.label}</div>
                 <p className="text-xs text-accent/80 mt-2 uppercase tracking-[0.2em]">
                   Confidence · {Math.round((result.confidence ?? 0) * 100)}%
