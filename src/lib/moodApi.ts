@@ -208,6 +208,7 @@ export function subscribeMoodEntries(
           source: data.source ?? "manual",
           confidence: data.confidence ?? undefined,
           behaviors: data.behaviors ?? {},
+          reflection: data.reflection ?? undefined,
           date: data.date ?? todayKey(),
           createdAt: data.createdAt ?? Date.now(),
         };
