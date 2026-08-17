@@ -101,14 +101,25 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
   if (!uid) throw new Error("You must be signed in to save a mood.");
 
   const entryRef = doc(col());
+  const reflection = sanitizeReflection(entry.reflection);
+  const hasReflection = hasReflectionContent(reflection);
+  const noteFromReflection = hasReflection ? buildNoteFromReflection(reflection) : "";
+  const explicitNote = (entry.note ?? "").trim();
+  const combinedNote = noteFromReflection
+    ? explicitNote
+      ? `${explicitNote}\n\n${noteFromReflection}`
+      : noteFromReflection
+    : explicitNote;
+
   const payload = stripUndefined({
     userId: uid,
     mood: entry.mood,
     intensity: entry.intensity ?? 5,
-    note: entry.note ?? "",
+    note: combinedNote,
     source: entry.source,
     confidence: entry.confidence ?? null,
     behaviors: sanitizeBehaviors(entry.behaviors),
+    reflection: hasReflection ? reflection : null,
     date: entry.date ?? todayKey(),
     createdAt: entry.createdAt ?? Date.now(),
     serverCreatedAt: Timestamp.now(),
