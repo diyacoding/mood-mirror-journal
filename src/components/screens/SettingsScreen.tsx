@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   Trash2,
@@ -140,6 +140,17 @@ export const SettingsScreen = ({ entries }: Props) => {
   const { theme, setTheme } = useTheme();
   const { prefs, update } = usePreferences();
 
+  const modeHues = theme === "dark" ? DARK_HUES : LIGHT_HUES;
+  const storedHueId = theme === "dark" ? prefs.darkHue : prefs.lightHue;
+  const isValidHue = modeHues.some((h) => h.id === storedHueId);
+  const activeHueId = isValidHue ? storedHueId : modeHues[0].id;
+
+  useEffect(() => {
+    if (isValidHue) return;
+    update(theme === "dark" ? { darkHue: modeHues[0].id } : { lightHue: modeHues[0].id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isValidHue, theme]);
+
   const toggleReminders = async (val: boolean) => {
     if (val && "Notification" in window && Notification.permission !== "granted") {
       const perm = await Notification.requestPermission();
@@ -230,21 +241,26 @@ export const SettingsScreen = ({ entries }: Props) => {
       <Card
         icon={<Palette className="h-5 w-5" />}
         title="Theme colour"
-        subtitle="Pick a hue for Light Mode and Dark Mode independently."
+        subtitle={`Colours available for ${theme === "dark" ? "Dark" : "Light"} Mode.`}
       >
         <div className="mt-4 space-y-5">
-          <HuePicker
-            label="Light Mode hue"
-            options={LIGHT_HUES}
-            value={prefs.lightHue}
-            onChange={(id) => update({ lightHue: id })}
-          />
-          <HuePicker
-            label="Dark Mode hue"
-            options={DARK_HUES}
-            value={prefs.darkHue}
-            onChange={(id) => update({ darkHue: id })}
-          />
+          {theme === "dark" ? (
+            <HuePicker
+              key="dark"
+              label="Dark Mode hue"
+              options={DARK_HUES}
+              value={activeHueId}
+              onChange={(id) => update({ darkHue: id })}
+            />
+          ) : (
+            <HuePicker
+              key="light"
+              label="Light Mode hue"
+              options={LIGHT_HUES}
+              value={activeHueId}
+              onChange={(id) => update({ lightHue: id })}
+            />
+          )}
           <div className="flex items-center gap-3">
             <div
               className="h-10 flex-1 rounded-2xl border border-border"
@@ -256,8 +272,8 @@ export const SettingsScreen = ({ entries }: Props) => {
             <button
               type="button"
               onClick={() => {
-                update({ lightHue: "default", darkHue: "default" });
-                toast.success("Theme colours reset");
+                update(theme === "dark" ? { darkHue: "default" } : { lightHue: "default" });
+                toast.success("Theme colour reset");
               }}
               className="rounded-2xl glass px-3 py-2 text-xs min-h-11 text-muted-foreground hover:text-foreground transition-smooth"
             >
