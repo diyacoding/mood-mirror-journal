@@ -272,8 +272,6 @@ export const SettingsScreen = ({ entries }: Props) => {
         </div>
       </Card>
 
-      </Card>
-
       {/* Sticker Set */}
       <Card icon={null} title="Sticker set" subtitle="Pick the icon style for your moods.">
         <div className="mt-4 grid grid-cols-2 gap-2">
