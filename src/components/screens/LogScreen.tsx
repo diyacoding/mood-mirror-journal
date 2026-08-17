@@ -2,11 +2,11 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoodPicker } from "@/components/MoodPicker";
-import type { MoodKey } from "@/lib/moodTypes";
+import { ReflectionSection } from "@/components/ReflectionSection";
+import type { MoodKey, MoodReflection } from "@/lib/moodTypes";
 import { addMoodEntry, type MoodSaveResult } from "@/lib/moodApi";
 import { toast } from "sonner";
 
@@ -21,7 +21,7 @@ const INTENSITY_LABEL = ["Very Low", "Very Low", "Low", "Low", "Moderate", "Mode
 export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
   const [mood, setMood] = useState<MoodKey | undefined>(initialMood);
   const [intensity, setIntensity] = useState(5);
-  const [note, setNote] = useState("");
+  const [reflection, setReflection] = useState<MoodReflection>({});
   const [sleepH, setSleepH] = useState<string>("");
   const [sleepM, setSleepM] = useState<string>("");
   const [exH, setExH] = useState<string>("");
@@ -46,7 +46,7 @@ export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
       const result = await addMoodEntry({
         mood,
         intensity,
-        note: note.trim() || undefined,
+        reflection,
         source: "manual",
         behaviors: { sleepHours, exerciseMinutes, screenTimeHours },
       });
@@ -85,8 +85,7 @@ export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
       </section>
 
       <section className="space-y-3">
-        <Label className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Notes (optional)</Label>
-        <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="What's on your mind? e.g. 'Had a stressful exam today.'" rows={3} className="glass border-accent/20 rounded-2xl" />
+        <ReflectionSection value={reflection} onChange={setReflection} />
       </section>
 
       <section className="space-y-4">
