@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { moodMeta, type MoodKey } from "@/lib/moodTypes";
+import type { MoodReflection } from "@/lib/moodTypes";
 import {
   detectMoodFromVideo,
   initFaceLandmarker,
@@ -33,7 +34,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
   const [result, setResult] = useState<DetectionResult | null>(null);
   const [override, setOverride] = useState<MoodKey | undefined>();
   const [intensity, setIntensity] = useState(5);
-  const [reflection, setReflection] = useState<Record<string, string>>({});
+  const [reflection, setReflection] = useState<MoodReflection>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
