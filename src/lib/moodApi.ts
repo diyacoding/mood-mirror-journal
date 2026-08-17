@@ -68,6 +68,33 @@ function sanitizeBehaviors(b: any) {
   };
 }
 
+function sanitizeReflection(r: any) {
+  const src = r ?? {};
+  const str = (v: any) => (typeof v === "string" ? v.trim() : "");
+  return {
+    biggestWin: str(src.biggestWin),
+    onMyMind: str(src.onMyMind),
+    highlight: str(src.highlight),
+    difficult: str(src.difficult),
+    anythingElse: str(src.anythingElse),
+  };
+}
+
+function buildNoteFromReflection(reflection: any): string {
+  const r = sanitizeReflection(reflection);
+  const parts: string[] = [];
+  if (r.biggestWin) parts.push(`🌟 Biggest win: ${r.biggestWin}`);
+  if (r.onMyMind) parts.push(`💭 On my mind: ${r.onMyMind}`);
+  if (r.highlight) parts.push(`✨ Highlight: ${r.highlight}`);
+  if (r.difficult) parts.push(`🌧️ Difficult: ${r.difficult}`);
+  if (r.anythingElse) parts.push(`📝 Anything else: ${r.anythingElse}`);
+  return parts.join("\n");
+}
+
+function hasReflectionContent(r: any): boolean {
+  return Object.values(sanitizeReflection(r)).some((v) => (v as string).length > 0);
+}
+
 export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult> {
   const uid = auth.currentUser?.uid;
   console.info("[mood-flow] addMoodEntry start", { uid, mood: entry.mood });
