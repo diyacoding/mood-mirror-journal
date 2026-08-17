@@ -140,6 +140,17 @@ export const SettingsScreen = ({ entries }: Props) => {
   const { theme, setTheme } = useTheme();
   const { prefs, update } = usePreferences();
 
+  const modeHues = theme === "dark" ? DARK_HUES : LIGHT_HUES;
+  const storedHueId = theme === "dark" ? prefs.darkHue : prefs.lightHue;
+  const isValidHue = modeHues.some((h) => h.id === storedHueId);
+  const activeHueId = isValidHue ? storedHueId : modeHues[0].id;
+
+  useEffect(() => {
+    if (isValidHue) return;
+    update(theme === "dark" ? { darkHue: modeHues[0].id } : { lightHue: modeHues[0].id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isValidHue, theme]);
+
   const toggleReminders = async (val: boolean) => {
     if (val && "Notification" in window && Notification.permission !== "granted") {
       const perm = await Notification.requestPermission();
