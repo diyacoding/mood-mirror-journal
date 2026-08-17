@@ -75,7 +75,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
       setResult(r);
       setOverride(r.faceDetected ? r.mood : undefined);
       setIntensity(Math.max(1, Math.min(10, Math.round((r.confidence ?? 0.5) * 10))));
-      setNote("");
+      setReflection({});
     } catch {
       toast.error("Scan failed");
     } finally {
@@ -83,7 +83,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
     }
   };
 
-  const reset = () => { setResult(null); setOverride(undefined); setNote(""); setIntensity(5); };
+  const reset = () => { setResult(null); setOverride(undefined); setReflection({}); setIntensity(5); };
 
   const confirm = async () => {
     const final = override ?? result?.mood;
@@ -96,7 +96,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
       const saveResult = await addMoodEntry({
         mood: final,
         intensity,
-        note: note.trim() || undefined,
+        reflection,
         confidence: result.confidence,
         source: "scan",
       });
@@ -171,10 +171,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
           )}
 
           {detected && (
-            <div className="space-y-2">
-              <Label className="text-[11px] uppercase tracking-[0.25em] text-accent/80">Notes (optional)</Label>
-              <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="What's on your mind?" rows={3} className="glass border-accent/20 rounded-2xl" />
-            </div>
+            <ReflectionSection value={reflection} onChange={setReflection} />
           )}
 
           <div className="flex gap-2">
