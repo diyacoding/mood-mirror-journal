@@ -33,7 +33,7 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
   const [result, setResult] = useState<DetectionResult | null>(null);
   const [override, setOverride] = useState<MoodKey | undefined>();
   const [intensity, setIntensity] = useState(5);
-  const [note, setNote] = useState("");
+  const [reflection, setReflection] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
