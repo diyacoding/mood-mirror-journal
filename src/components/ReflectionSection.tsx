@@ -129,7 +129,7 @@ export function ReflectionSection({ value, onChange }: ReflectionSectionProps) {
                   </button>
                 </CollapsibleTrigger>
 
-                <CollapsibleContent className="overflow-hidden transition-all data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                <CollapsibleContent className="overflow-hidden transition-all">
                   <div className="pt-3 pl-10">
                     <Textarea
                       value={text}
