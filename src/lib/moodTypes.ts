@@ -8,6 +8,14 @@ export type MoodKey =
   | "stressed"
   | "sad";
 
+export interface MoodReflection {
+  biggestWin?: string;
+  onMyMind?: string;
+  highlight?: string;
+  difficult?: string;
+  anythingElse?: string;
+}
+
 export interface MoodBehaviors {
   sleepHours?: number;
   exerciseMinutes?: number;
@@ -24,6 +32,7 @@ export interface MoodEntry {
   source: "manual" | "scan";
   confidence?: number;
   behaviors?: MoodBehaviors;
+  reflection?: MoodReflection;
   date: string; // yyyy-MM-dd
   createdAt: number; // ms epoch
 }

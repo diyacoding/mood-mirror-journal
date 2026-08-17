@@ -68,20 +68,58 @@ function sanitizeBehaviors(b: any) {
   };
 }
 
+function sanitizeReflection(r: any) {
+  const src = r ?? {};
+  const str = (v: any) => (typeof v === "string" ? v.trim() : "");
+  return {
+    biggestWin: str(src.biggestWin),
+    onMyMind: str(src.onMyMind),
+    highlight: str(src.highlight),
+    difficult: str(src.difficult),
+    anythingElse: str(src.anythingElse),
+  };
+}
+
+function buildNoteFromReflection(reflection: any): string {
+  const r = sanitizeReflection(reflection);
+  const parts: string[] = [];
+  if (r.biggestWin) parts.push(`🌟 Biggest win: ${r.biggestWin}`);
+  if (r.onMyMind) parts.push(`💭 On my mind: ${r.onMyMind}`);
+  if (r.highlight) parts.push(`✨ Highlight: ${r.highlight}`);
+  if (r.difficult) parts.push(`🌧️ Difficult: ${r.difficult}`);
+  if (r.anythingElse) parts.push(`📝 Anything else: ${r.anythingElse}`);
+  return parts.join("\n");
+}
+
+function hasReflectionContent(r: any): boolean {
+  return Object.values(sanitizeReflection(r)).some((v) => (v as string).length > 0);
+}
+
 export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult> {
   const uid = auth.currentUser?.uid;
   console.info("[mood-flow] addMoodEntry start", { uid, mood: entry.mood });
   if (!uid) throw new Error("You must be signed in to save a mood.");
 
   const entryRef = doc(col());
+  const reflection = sanitizeReflection(entry.reflection);
+  const hasReflection = hasReflectionContent(reflection);
+  const noteFromReflection = hasReflection ? buildNoteFromReflection(reflection) : "";
+  const explicitNote = (entry.note ?? "").trim();
+  const combinedNote = noteFromReflection
+    ? explicitNote
+      ? `${explicitNote}\n\n${noteFromReflection}`
+      : noteFromReflection
+    : explicitNote;
+
   const payload = stripUndefined({
     userId: uid,
     mood: entry.mood,
     intensity: entry.intensity ?? 5,
-    note: entry.note ?? "",
+    note: combinedNote,
     source: entry.source,
     confidence: entry.confidence ?? null,
     behaviors: sanitizeBehaviors(entry.behaviors),
+    reflection: hasReflection ? reflection : null,
     date: entry.date ?? todayKey(),
     createdAt: entry.createdAt ?? Date.now(),
     serverCreatedAt: Timestamp.now(),
@@ -170,6 +208,7 @@ export function subscribeMoodEntries(
           source: data.source ?? "manual",
           confidence: data.confidence ?? undefined,
           behaviors: data.behaviors ?? {},
+          reflection: data.reflection ?? undefined,
           date: data.date ?? todayKey(),
           createdAt: data.createdAt ?? Date.now(),
         };
