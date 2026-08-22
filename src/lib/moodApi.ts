@@ -123,7 +123,9 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
     reflection: hasReflection ? reflection : null,
     date: entry.date ?? todayKey(),
     createdAt: entry.createdAt ?? Date.now(),
-    serverCreatedAt: Timestamp.now(),
+    // Authoritative, server-side timestamps. Never rely on the device clock for ordering.
+    serverCreatedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
   console.info("[mood-flow] Mood payload (sanitized)", JSON.stringify(payload, null, 2));
 
