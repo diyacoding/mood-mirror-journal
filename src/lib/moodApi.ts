@@ -5,10 +5,11 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   query,
   runTransaction,
-  Timestamp,
+  serverTimestamp,
   where,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
@@ -122,7 +123,9 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
     reflection: hasReflection ? reflection : null,
     date: entry.date ?? todayKey(),
     createdAt: entry.createdAt ?? Date.now(),
-    serverCreatedAt: Timestamp.now(),
+    // Authoritative, server-side timestamps. Never rely on the device clock for ordering.
+    serverCreatedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
   console.info("[mood-flow] Mood payload (sanitized)", JSON.stringify(payload, null, 2));
 
@@ -181,7 +184,20 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
 }
 
 export async function deleteMoodEntry(id: string): Promise<void> {
-  await deleteDoc(doc(db, MOOD_COLLECTION, id));
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("You must be signed in to delete a mood.");
+  const ref = doc(db, MOOD_COLLECTION, id);
+  // Explicit, user-initiated deletes only — and only of the caller's own entry.
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    console.warn("[mood-flow] delete skipped — entry no longer exists", { id });
+    return;
+  }
+  if ((snap.data() as any)?.userId !== uid) {
+    throw new Error("You can only delete your own entries.");
+  }
+  console.info("[mood-flow] Explicit user delete", { id, uid });
+  await deleteDoc(ref);
 }
 
 export function subscribeMoodEntries(
@@ -193,13 +209,21 @@ export function subscribeMoodEntries(
     cb([]);
     return () => {};
   }
-  // Filter to current user. orderBy by createdAt on client to avoid composite index requirement.
+  // READ-ONLY listener. It must never write anything back to Firestore.
+  // Filter to current user. Sorted on the client to avoid a composite index.
   const q = query(col(), where("userId", "==", uid));
   return onSnapshot(
     q,
+    { includeMetadataChanges: false },
     (snap) => {
       const list: MoodEntry[] = snap.docs.map((d) => {
         const data = d.data() as any;
+        // Prefer the server timestamp; fall back to the device clock only if
+        // the server value has not landed yet (pending local write).
+        const serverMs =
+          typeof data.serverCreatedAt?.toMillis === "function"
+            ? data.serverCreatedAt.toMillis()
+            : null;
         return {
           id: d.id,
           mood: data.mood,
@@ -210,12 +234,24 @@ export function subscribeMoodEntries(
           behaviors: data.behaviors ?? {},
           reflection: data.reflection ?? undefined,
           date: data.date ?? todayKey(),
-          createdAt: data.createdAt ?? Date.now(),
+          createdAt: serverMs ?? data.createdAt ?? Date.now(),
         };
       });
       list.sort((a, b) => b.createdAt - a.createdAt);
+      console.info("[mood-flow] snapshot", {
+        uid,
+        firestoreDocs: snap.size,
+        deliveredToUI: list.length,
+        fromCache: snap.metadata.fromCache,
+        hasPendingWrites: snap.metadata.hasPendingWrites,
+        newest: list[0]?.date ?? null,
+      });
       cb(list);
     },
-    (err) => onError?.(err),
+    (err) => {
+      console.error("[mood-flow] listener error", { code: (err as any)?.code, message: err.message });
+      onError?.(err);
+    },
   );
 }
+

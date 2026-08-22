@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIcons } from "@/lib/iconSets";
 import { format } from "date-fns";
 import { Flame, Plus, Camera } from "lucide-react";
@@ -18,12 +18,25 @@ interface Props {
 }
 
 export const HomeScreen = ({ entries, loading, onNavigate, onLogToday }: Props) => {
+  // Keep "today" live so a tab left open across midnight doesn't hide entries.
+  const [dayKey, setDayKey] = useState(todayKey());
+  useEffect(() => {
+    const tick = () => setDayKey(todayKey());
+    const id = setInterval(tick, 60_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
+
   const streak = useMemo(() => computeStreak(entries), [entries]);
-  const today = entries.find((e) => e.date === todayKey());
+  const today = entries.find((e) => e.date === dayKey);
   const todayMood = today ? moodMeta(today.mood) : null;
   const insights = useMemo(() => generateInsights(entries), [entries]);
   const recent = entries.slice(0, 5);
   const icons = useIcons();
+
 
   return (
     <div className="px-5 pt-10 pb-32 space-y-6 animate-fade-in relative">
