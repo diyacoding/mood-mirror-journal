@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { User } from "firebase/auth";
 import { toast } from "sonner";
-import { Gift, Plus, Wand2 } from "lucide-react";
+import { BookOpen, Gift, Plus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePet } from "@/hooks/usePet";
 import {
@@ -20,21 +20,24 @@ import { PetDisplay } from "@/components/pet/PetDisplay";
 import { PetDrawingCanvas } from "@/components/pet/PetDrawingCanvas";
 import { AccessoryWheel } from "@/components/pet/AccessoryWheel";
 import { EggHatch } from "@/components/pet/EggHatch";
+import { PetScrapbook } from "@/components/pet/PetScrapbook";
 import { cn } from "@/lib/utils";
 import { celebrate } from "@/lib/celebrate";
 
 interface Props {
   user: User;
   hatchTrigger?: number;
+  onLogMood?: () => void;
 }
 
-export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
+export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
   const { owner, items, currentPet, loading } = usePet(user.uid);
   const icons = useIcons();
   const [creator, setCreator] = useState(false);
   const [customAccessory, setCustomAccessory] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [hatching, setHatching] = useState(false);
+  const [scrapbook, setScrapbook] = useState(false);
   const hatchHandledRef = useRef<string | null>(null);
 
   const points = owner?.points ?? 0;
