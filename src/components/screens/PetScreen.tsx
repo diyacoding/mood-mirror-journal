@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { User } from "firebase/auth";
 import { toast } from "sonner";
-import { Gift, Plus, Wand2 } from "lucide-react";
+import { BookOpen, Gift, Plus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePet } from "@/hooks/usePet";
 import {
@@ -20,21 +20,24 @@ import { PetDisplay } from "@/components/pet/PetDisplay";
 import { PetDrawingCanvas } from "@/components/pet/PetDrawingCanvas";
 import { AccessoryWheel } from "@/components/pet/AccessoryWheel";
 import { EggHatch } from "@/components/pet/EggHatch";
+import { PetScrapbook } from "@/components/pet/PetScrapbook";
 import { cn } from "@/lib/utils";
 import { celebrate } from "@/lib/celebrate";
 
 interface Props {
   user: User;
   hatchTrigger?: number;
+  onLogMood?: () => void;
 }
 
-export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
+export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
   const { owner, items, currentPet, loading } = usePet(user.uid);
   const icons = useIcons();
   const [creator, setCreator] = useState(false);
   const [customAccessory, setCustomAccessory] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [hatching, setHatching] = useState(false);
+  const [scrapbook, setScrapbook] = useState(false);
   const hatchHandledRef = useRef<string | null>(null);
 
   const points = owner?.points ?? 0;
@@ -196,6 +199,15 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
         )}
       </div>
 
+      {/* Scrapbook */}
+      <Button
+        onClick={() => setScrapbook(true)}
+        variant="outline"
+        className="w-full rounded-full glass border-accent/40 h-12 tracking-widest uppercase text-xs"
+      >
+        <BookOpen className="h-4 w-4 mr-2" /> Open pet scrapbook
+      </Button>
+
       {/* Rewards */}
       <div className="glass rounded-3xl p-5 space-y-3">
         <div className="flex items-center justify-between">
@@ -315,6 +327,15 @@ export const PetScreen = ({ user, hatchTrigger = 0 }: Props) => {
           spinsRemaining={mySpins}
           onSpin={handleSpin}
           onClose={() => setWheelOpen(false)}
+        />
+      )}
+      {scrapbook && (
+        <PetScrapbook
+          pets={items}
+          points={points}
+          customArt={customArt}
+          onClose={() => setScrapbook(false)}
+          onLogMood={onLogMood}
         />
       )}
       {hatching && (
