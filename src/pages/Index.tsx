@@ -119,7 +119,13 @@ const Index = () => {
         )}
         {screen === "insights" && <InsightsScreen entries={entries} petOwner={petOwner} />}
         {screen === "connections" && <ConnectionsScreen user={user} />}
-        {screen === "pet" && <PetScreen user={user} hatchTrigger={petHatchTrigger} />}
+        {screen === "pet" && (
+          <PetScreen
+            user={user}
+            hatchTrigger={petHatchTrigger}
+            onLogMood={() => { setPrefilledMood(undefined); setScreen("log"); }}
+          />
+        )}
         {screen === "settings" && <SettingsScreen entries={entries} />}
 
         <BottomNav active={screen} onChange={setScreen} />

@@ -199,6 +199,15 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
         )}
       </div>
 
+      {/* Scrapbook */}
+      <Button
+        onClick={() => setScrapbook(true)}
+        variant="outline"
+        className="w-full rounded-full glass border-accent/40 h-12 tracking-widest uppercase text-xs"
+      >
+        <BookOpen className="h-4 w-4 mr-2" /> Open pet scrapbook
+      </Button>
+
       {/* Rewards */}
       <div className="glass rounded-3xl p-5 space-y-3">
         <div className="flex items-center justify-between">
@@ -318,6 +327,15 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
           spinsRemaining={mySpins}
           onSpin={handleSpin}
           onClose={() => setWheelOpen(false)}
+        />
+      )}
+      {scrapbook && (
+        <PetScrapbook
+          pets={items}
+          points={points}
+          customArt={customArt}
+          onClose={() => setScrapbook(false)}
+          onLogMood={onLogMood}
         />
       )}
       {hatching && (
