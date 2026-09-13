@@ -34,11 +34,22 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
   const { owner, items, currentPet, loading } = usePet(user.uid);
   const icons = useIcons();
   const [creator, setCreator] = useState(false);
+  const [createMode, setCreateMode] = useState<"choice" | "draw" | "photo">("choice");
   const [customAccessory, setCustomAccessory] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [hatching, setHatching] = useState(false);
   const [scrapbook, setScrapbook] = useState(false);
   const hatchHandledRef = useRef<string | null>(null);
+
+  const openCreator = () => {
+    setCreateMode("choice");
+    setCreator(true);
+  };
+  const closeCreator = () => {
+    setCreator(false);
+    setCreateMode("choice");
+  };
+
 
   const points = owner?.points ?? 0;
   const level = Math.floor(points / 100) + 1;
