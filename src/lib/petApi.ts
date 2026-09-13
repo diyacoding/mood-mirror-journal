@@ -16,10 +16,14 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import type { Transaction } from "firebase/firestore";
-import { db, auth } from "./firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { db, auth, storage } from "./firebase";
+import { dataUrlToBlob } from "./imageCompress";
 import { findMyConnection } from "./connectionsApi";
-import type { AccessoryId, AccessoryKey, CustomAccessory, PetItem, PetOwnerDoc } from "./petTypes";
+
+import type { AccessoryId, AccessoryKey, CustomAccessory, PetItem, PetOwnerDoc, PetSource } from "./petTypes";
 import { ACCESSORIES } from "./petTypes";
+
 
 const COL = "pets";
 
@@ -135,8 +139,10 @@ export async function createPet(
   uid: string,
   imageDataUrl: string,
   name?: string,
+  extra?: { source?: PetSource; storagePath?: string },
 ): Promise<string> {
   console.info("[pet-save] createPet start", {
+
     uid,
     authUid: auth.currentUser?.uid,
     nameSize: imageDataUrl?.length,
@@ -155,11 +161,14 @@ export async function createPet(
     accessories: [],
     createdAt: Date.now(),
     createdBy: uid,
+    source: extra?.source ?? "drawn",
+    ...(extra?.storagePath ? { storagePath: extra.storagePath } : {}),
     // Ownership fields on the item itself so rules can verify directly
     // without needing to read the parent doc.
     ownerKey: info.key,
     members: info.members,
   };
+
   console.info("[pet-save] item payload", { ...item, imageDataUrl: `[${imageDataUrl.length} chars]` });
 
   let ref;
@@ -389,4 +398,44 @@ export async function addCustomAccessory(
     );
   });
   return id;
+}
+
+/**
+ * Create a pet from a real photo. The (already compressed) image is uploaded to the
+ * existing per-user Firebase Storage folder; if Storage is unavailable we keep the
+ * compressed image inline so the pet is never lost. The Firestore record uses the
+ * same pet structure as drawn pets, so scrapbook/accessories/sharing all still work.
+ */
+export async function createPetFromPhoto(
+  uid: string,
+  compressedDataUrl: string,
+  name?: string,
+): Promise<string> {
+  if (!auth.currentUser?.uid) throw new Error("You must be signed in to add a pet.");
+  if (!compressedDataUrl?.startsWith("data:image/")) throw new Error("Invalid photo");
+
+  const blob = dataUrlToBlob(compressedDataUrl);
+  const path = `drawings/${uid}/pet-${Date.now()}.png`;
+  let imageRef: string = compressedDataUrl;
+  let storagePath: string | undefined;
+  let uploaded: ReturnType<typeof storageRef> | null = null;
+
+  try {
+    uploaded = storageRef(storage, path);
+    await uploadBytes(uploaded, blob, { contentType: blob.type });
+    imageRef = await getDownloadURL(uploaded);
+    storagePath = path;
+  } catch (err: any) {
+    // Storage unavailable (e.g. plan not enabled) — fall back to the inline image.
+    console.warn("[pet-photo] storage upload unavailable, using inline image", err?.code, err?.message);
+    uploaded = null;
+  }
+
+  try {
+    return await createPet(uid, imageRef, name, { source: "photo", storagePath });
+  } catch (err) {
+    // Never leave an orphaned upload behind if the pet record couldn't be created.
+    if (uploaded) await deleteObject(uploaded).catch(() => {});
+    throw err;
+  }
 }

@@ -8,6 +8,8 @@ import {
   applyAccessory,
   consumeSpin,
   createPet,
+  createPetFromPhoto,
+
   removeAccessory,
   selectPet,
   addCustomAccessory,
@@ -18,7 +20,10 @@ import type { AccessoryId, AccessoryPlacement } from "@/lib/petTypes";
 import { useIcons } from "@/lib/iconSets";
 import { PetDisplay } from "@/components/pet/PetDisplay";
 import { PetDrawingCanvas } from "@/components/pet/PetDrawingCanvas";
+import { PetPhotoUpload } from "@/components/pet/PetPhotoUpload";
+import { PetCreateChoice } from "@/components/pet/PetCreateChoice";
 import { AccessoryWheel } from "@/components/pet/AccessoryWheel";
+
 import { EggHatch } from "@/components/pet/EggHatch";
 import { PetScrapbook } from "@/components/pet/PetScrapbook";
 import { cn } from "@/lib/utils";
@@ -34,11 +39,22 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
   const { owner, items, currentPet, loading } = usePet(user.uid);
   const icons = useIcons();
   const [creator, setCreator] = useState(false);
+  const [createMode, setCreateMode] = useState<"choice" | "draw" | "photo">("choice");
   const [customAccessory, setCustomAccessory] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [hatching, setHatching] = useState(false);
   const [scrapbook, setScrapbook] = useState(false);
   const hatchHandledRef = useRef<string | null>(null);
+
+  const openCreator = () => {
+    setCreateMode("choice");
+    setCreator(true);
+  };
+  const closeCreator = () => {
+    setCreator(false);
+    setCreateMode("choice");
+  };
+
 
   const points = owner?.points ?? 0;
   const level = Math.floor(points / 100) + 1;
@@ -95,6 +111,14 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
       toast.error(e?.message ?? "Could not save pet");
     }
   };
+
+  const handlePhotoCreate = async (dataUrl: string, name?: string) => {
+    // Throws on failure so the upload dialog can show the message and stay open.
+    await createPetFromPhoto(user.uid, dataUrl, name);
+    celebrate("pet-saved");
+    toast.success(shared ? "Pet added — shared with your partner" : "Pet added to your pets!");
+  };
+
 
   const handleSpin = async () => {
     const reward = await consumeSpin(user.uid);
@@ -190,7 +214,7 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
 
         {(noPetYet || needsNew) && !hatching && (
           <Button
-            onClick={() => setCreator(true)}
+            onClick={openCreator}
             className="w-full rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-12"
           >
             <Plus className="h-4 w-4 mr-1" />
@@ -308,13 +332,24 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
         </section>
       )}
 
-      {creator && (
+      {creator && createMode === "choice" && (
+        <PetCreateChoice
+          onDraw={() => setCreateMode("draw")}
+          onUpload={() => setCreateMode("photo")}
+          onClose={closeCreator}
+        />
+      )}
+      {creator && createMode === "draw" && (
         <PetDrawingCanvas
           title={shared ? "Co-design your pet" : "Create your pet"}
           onSave={handleCreate}
-          onClose={() => setCreator(false)}
+          onClose={closeCreator}
         />
       )}
+      {creator && createMode === "photo" && (
+        <PetPhotoUpload onSave={handlePhotoCreate} onClose={closeCreator} />
+      )}
+
       {customAccessory && (
         <PetDrawingCanvas
           title="Draw your accessory"
@@ -342,12 +377,13 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
         <EggHatch
           onDone={() => {
             setHatching(false);
-            setCreator(true);
+            openCreator();
             celebrate("hatch");
             toast.success("Your pet has hatched! 🎉");
           }}
         />
       )}
+
     </div>
   );
 };

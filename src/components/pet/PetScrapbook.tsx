@@ -113,14 +113,21 @@ export const PetScrapbook = ({ pets, points, customArt = {}, onClose, onLogMood 
               <div className="mx-auto w-52 h-52 rounded-3xl glass flex items-center justify-center p-3">
                 <img
                   src={pet.imageDataUrl}
-                  alt={pet.name ?? "Pet drawing"}
-                  className="w-full h-full object-contain"
+                  alt={pet.source === "photo" ? (pet.name ? `Photo of ${pet.name}` : "Photo of your pet") : (pet.name ?? "Pet drawing")}
+                  className={cn(
+                    "w-full h-full",
+                    pet.source === "photo" ? "object-cover rounded-2xl" : "object-contain",
+                  )}
                 />
               </div>
               <h3 className="font-display text-2xl tracking-wider">{pet.name ?? "Unnamed friend"}</h3>
-              <p className="text-xs italic text-muted-foreground">
-                “hatched with love on {fmtDate(pet.createdAt)}”
+              <p className="text-[10px] uppercase tracking-[0.25em] text-accent/80">
+                {pet.source === "photo" ? "📸 Real pet photo" : "🎨 Drawn by you"}
               </p>
+              <p className="text-xs italic text-muted-foreground">
+                “{pet.source === "photo" ? "added with love on" : "hatched with love on"} {fmtDate(pet.createdAt)}”
+              </p>
+
 
               <div>
                 <p className="text-[10px] uppercase tracking-[0.25em] text-accent/80 mb-2">
