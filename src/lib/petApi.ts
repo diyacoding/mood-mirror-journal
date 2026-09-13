@@ -135,8 +135,10 @@ export async function createPet(
   uid: string,
   imageDataUrl: string,
   name?: string,
+  extra?: { source?: PetSource; storagePath?: string },
 ): Promise<string> {
   console.info("[pet-save] createPet start", {
+
     uid,
     authUid: auth.currentUser?.uid,
     nameSize: imageDataUrl?.length,
