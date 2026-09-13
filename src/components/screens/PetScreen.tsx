@@ -8,6 +8,8 @@ import {
   applyAccessory,
   consumeSpin,
   createPet,
+  createPetFromPhoto,
+
   removeAccessory,
   selectPet,
   addCustomAccessory,
@@ -106,6 +108,14 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
       toast.error(e?.message ?? "Could not save pet");
     }
   };
+
+  const handlePhotoCreate = async (dataUrl: string, name?: string) => {
+    // Throws on failure so the upload dialog can show the message and stay open.
+    await createPetFromPhoto(user.uid, dataUrl, name);
+    celebrate("pet-saved");
+    toast.success(shared ? "Pet added — shared with your partner" : "Pet added to your pets!");
+  };
+
 
   const handleSpin = async () => {
     const reward = await consumeSpin(user.uid);
