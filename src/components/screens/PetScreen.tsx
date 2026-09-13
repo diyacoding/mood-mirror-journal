@@ -20,7 +20,10 @@ import type { AccessoryId, AccessoryPlacement } from "@/lib/petTypes";
 import { useIcons } from "@/lib/iconSets";
 import { PetDisplay } from "@/components/pet/PetDisplay";
 import { PetDrawingCanvas } from "@/components/pet/PetDrawingCanvas";
+import { PetPhotoUpload } from "@/components/pet/PetPhotoUpload";
+import { PetCreateChoice } from "@/components/pet/PetCreateChoice";
 import { AccessoryWheel } from "@/components/pet/AccessoryWheel";
+
 import { EggHatch } from "@/components/pet/EggHatch";
 import { PetScrapbook } from "@/components/pet/PetScrapbook";
 import { cn } from "@/lib/utils";
@@ -211,7 +214,7 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
 
         {(noPetYet || needsNew) && !hatching && (
           <Button
-            onClick={() => setCreator(true)}
+            onClick={openCreator}
             className="w-full rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-12"
           >
             <Plus className="h-4 w-4 mr-1" />
@@ -329,13 +332,24 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
         </section>
       )}
 
-      {creator && (
+      {creator && createMode === "choice" && (
+        <PetCreateChoice
+          onDraw={() => setCreateMode("draw")}
+          onUpload={() => setCreateMode("photo")}
+          onClose={closeCreator}
+        />
+      )}
+      {creator && createMode === "draw" && (
         <PetDrawingCanvas
           title={shared ? "Co-design your pet" : "Create your pet"}
           onSave={handleCreate}
-          onClose={() => setCreator(false)}
+          onClose={closeCreator}
         />
       )}
+      {creator && createMode === "photo" && (
+        <PetPhotoUpload onSave={handlePhotoCreate} onClose={closeCreator} />
+      )}
+
       {customAccessory && (
         <PetDrawingCanvas
           title="Draw your accessory"
@@ -363,12 +377,13 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
         <EggHatch
           onDone={() => {
             setHatching(false);
-            setCreator(true);
+            openCreator();
             celebrate("hatch");
             toast.success("Your pet has hatched! 🎉");
           }}
         />
       )}
+
     </div>
   );
 };
