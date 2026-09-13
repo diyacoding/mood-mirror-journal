@@ -55,6 +55,9 @@ export interface AccessoryPlacement {
   rotation?: number;
 }
 
+/** How the pet was created. Defaults to a hand-drawn pet for older records. */
+export type PetSource = "drawn" | "photo";
+
 export interface PetItem {
   id: string;
   name?: string;
@@ -64,7 +67,12 @@ export interface PetItem {
   accessoryPositions?: Record<string, AccessoryPlacement>;
   createdAt: number;
   createdBy: string;
+  /** "drawn" (canvas) or "photo" (uploaded real pet). */
+  source?: PetSource;
+  /** Firebase Storage object path, when the image lives in Storage. */
+  storagePath?: string;
 }
+
 
 export interface PetOwnerDoc {
   id: string;            // ownerKey: "u_{uid}" or "c_{cid}"

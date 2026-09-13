@@ -18,8 +18,9 @@ import {
 import type { Transaction } from "firebase/firestore";
 import { db, auth } from "./firebase";
 import { findMyConnection } from "./connectionsApi";
-import type { AccessoryId, AccessoryKey, CustomAccessory, PetItem, PetOwnerDoc } from "./petTypes";
+import type { AccessoryId, AccessoryKey, CustomAccessory, PetItem, PetOwnerDoc, PetSource } from "./petTypes";
 import { ACCESSORIES } from "./petTypes";
+
 
 const COL = "pets";
 
@@ -157,11 +158,14 @@ export async function createPet(
     accessories: [],
     createdAt: Date.now(),
     createdBy: uid,
+    source: extra?.source ?? "drawn",
+    ...(extra?.storagePath ? { storagePath: extra.storagePath } : {}),
     // Ownership fields on the item itself so rules can verify directly
     // without needing to read the parent doc.
     ownerKey: info.key,
     members: info.members,
   };
+
   console.info("[pet-save] item payload", { ...item, imageDataUrl: `[${imageDataUrl.length} chars]` });
 
   let ref;
