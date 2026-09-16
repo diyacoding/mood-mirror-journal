@@ -395,12 +395,13 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
           onClose={() => setWheelPrize(null)}
         />
       )}
-      {scrapbook && (
+      {scrapbook && !creator && !hatching && (
         <PetScrapbook
           pets={items}
           points={points}
           customArt={customArt}
           onClose={() => setScrapbook(false)}
+          closeLabel="Pet garden"
           onLogMood={onLogMood}
         />
       )}
