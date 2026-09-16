@@ -6,6 +6,7 @@ import { accessoryMeta, isCustomAccessory } from "@/lib/petTypes";
 import type { AccessoryId, PetItem } from "@/lib/petTypes";
 import { useIcons } from "@/lib/iconSets";
 import { cn } from "@/lib/utils";
+import { playPageFlip } from "@/lib/audioEngine";
 
 interface Props {
   /** Pets in any order — the scrapbook sorts oldest → newest itself. */
@@ -49,6 +50,8 @@ export const PetScrapbook = ({ pets, points, customArt = {}, onClose, onLogMood 
     if (next < 0 || next > pageCount - 1) return;
     setDir(delta > 0 ? "next" : "prev");
     setIndex(next);
+    // One short flip sound per completed turn (the engine ignores overlaps).
+    if (!prefs.reduceMotion) playPageFlip();
   };
 
   const toNextPet = 100 - (points % 100);
