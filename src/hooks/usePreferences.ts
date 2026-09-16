@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { applyThemeHues } from "@/lib/themeHue";
+import { setAudioSettings } from "@/lib/audioEngine";
 
 export type StickerSet = "classic" | "pastel" | "cosmic" | "minimal";
 
@@ -14,6 +15,12 @@ export interface Preferences {
   lightHue: string;
   /** Hue id for the dark-mode palette ("default" = original dark purple). */
   darkHue: string;
+  /** Background music on/off. Off by default — never autoplay uninvited. */
+  musicOn: boolean;
+  /** Background music volume, 0–1. */
+  musicVolume: number;
+  /** Sound-effects volume (page flips, drawing), 0–1. */
+  sfxVolume: number;
 }
 
 const KEY = "mm.preferences";
@@ -34,6 +41,9 @@ const DEFAULTS: Preferences = {
   reminderTime: "21:00",
   lightHue: "default",
   darkHue: "default",
+  musicOn: false,
+  musicVolume: 0.3,
+  sfxVolume: 0.5,
 };
 
 function read(): Preferences {
@@ -65,6 +75,7 @@ export function applyPreferences(p: Preferences) {
   root.classList.toggle("pref-reduce-motion", p.reduceMotion);
   root.classList.toggle("pref-high-contrast", p.highContrast);
   applyThemeHues(p.lightHue, p.darkHue);
+  setAudioSettings({ musicOn: p.musicOn, musicVolume: p.musicVolume, sfxVolume: p.sfxVolume });
 }
 
 export function getInitialPreferences(): Preferences {
