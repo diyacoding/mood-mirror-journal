@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { usePet } from "@/hooks/usePet";
 import {
   applyAccessory,
-  consumeSpin,
+  consumeSpinForDraw,
   createPet,
   createPetFromPhoto,
 
@@ -16,7 +16,7 @@ import {
   setAccessoryPosition,
 } from "@/lib/petApi";
 import { accessoryMeta, isCustomAccessory } from "@/lib/petTypes";
-import type { AccessoryId, AccessoryPlacement } from "@/lib/petTypes";
+import type { AccessoryId, AccessoryKey, AccessoryPlacement } from "@/lib/petTypes";
 import { useIcons } from "@/lib/iconSets";
 import { PetDisplay } from "@/components/pet/PetDisplay";
 import { PetDrawingCanvas } from "@/components/pet/PetDrawingCanvas";
@@ -42,8 +42,11 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
   const [createMode, setCreateMode] = useState<"choice" | "draw" | "photo">("choice");
   const [customAccessory, setCustomAccessory] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
+  // The accessory the wheel asked the user to draw (null = not drawing a prize).
+  const [wheelPrize, setWheelPrize] = useState<AccessoryKey | null>(null);
   const [hatching, setHatching] = useState(false);
-  const [scrapbook, setScrapbook] = useState(false);
+  // The Pets tab opens straight into the scrapbook, on the newest pet.
+  const [scrapbook, setScrapbook] = useState(true);
   const hatchHandledRef = useRef<string | null>(null);
 
   const openCreator = () => {
@@ -121,12 +124,18 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
 
 
   const handleSpin = async () => {
-    const reward = await consumeSpin(user.uid);
+    const reward = await consumeSpinForDraw(user.uid);
     if (reward) {
       celebrate("accessory");
-      toast.success(`Earned ${accessoryMeta(reward).label}!`);
+    } else {
+      toast.error("No spins left");
     }
     return reward;
+  };
+
+  const startWheelDrawing = (key: AccessoryKey) => {
+    setWheelOpen(false);
+    setWheelPrize(key);
   };
 
   const toggle = async (a: AccessoryId) => {
@@ -136,12 +145,17 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
     else await applyAccessory(user.uid, a);
   };
 
-  const handleCustomAccessory = async (dataUrl: string) => {
+  const handleCustomAccessory = async (dataUrl: string, kind?: AccessoryKey) => {
+    const label = kind && kind !== "custom" ? accessoryMeta(kind).label : undefined;
     try {
-      const id = await addCustomAccessory(user.uid, dataUrl);
+      const id = await addCustomAccessory(user.uid, dataUrl, { kind, label });
       if (currentPet) {
         await applyAccessory(user.uid, id);
-        toast.success("Custom accessory added — drag it into place on your pet");
+        toast.success(
+          label
+            ? `Your ${label.toLowerCase()} is on your pet — drag it into place`
+            : "Custom accessory added — drag it into place on your pet",
+        );
       } else {
         toast.success("Custom accessory added");
       }
@@ -229,7 +243,7 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
         variant="outline"
         className="w-full rounded-full glass border-accent/40 h-12 tracking-widest uppercase text-xs"
       >
-        <BookOpen className="h-4 w-4 mr-2" /> Open pet scrapbook
+        <BookOpen className="h-4 w-4 mr-2" /> Back to pet scrapbook
       </Button>
 
       {/* Rewards */}
@@ -361,15 +375,33 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
         <AccessoryWheel
           spinsRemaining={mySpins}
           onSpin={handleSpin}
+          onCreate={startWheelDrawing}
           onClose={() => setWheelOpen(false)}
         />
       )}
-      {scrapbook && (
+      {wheelPrize && (
+        <PetDrawingCanvas
+          title={
+            wheelPrize === "custom"
+              ? "Draw your own accessory"
+              : `Draw your ${accessoryMeta(wheelPrize).label.toLowerCase()}`
+          }
+          prompt={
+            wheelPrize === "custom"
+              ? "You won a free draw — make any accessory you like!"
+              : `You won ${accessoryMeta(wheelPrize).label} — draw your ${accessoryMeta(wheelPrize).label.toLowerCase()}!`
+          }
+          onSave={(dataUrl) => handleCustomAccessory(dataUrl, wheelPrize)}
+          onClose={() => setWheelPrize(null)}
+        />
+      )}
+      {scrapbook && !creator && !hatching && (
         <PetScrapbook
           pets={items}
           points={points}
           customArt={customArt}
           onClose={() => setScrapbook(false)}
+          closeLabel="Pet garden"
           onLogMood={onLogMood}
         />
       )}

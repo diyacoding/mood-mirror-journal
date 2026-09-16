@@ -32,6 +32,15 @@ export const ACCESSORIES: AccessoryMeta[] = [
   { key: "custom",   label: "Draw Your Own", emoji: "🎨", position: "side" },
 ];
 
+/** The prize wheel options. Landing on one asks the user to draw that accessory. */
+export const WHEEL_ACCESSORY_KEYS: AccessoryKey[] = [
+  "flower", "hat", "bow", "cat-ears", "dress", "wings", "custom",
+];
+
+export const WHEEL_ACCESSORIES: AccessoryMeta[] = WHEEL_ACCESSORY_KEYS.map(
+  (k) => ACCESSORIES.find((a) => a.key === k)!,
+);
+
 export const accessoryMeta = (k: AccessoryKey) =>
   ACCESSORIES.find((a) => a.key === k) ?? ACCESSORIES[0];
 
@@ -44,6 +53,10 @@ export interface CustomAccessory {
   id: string;              // `custom:<timestamp>`
   imageDataUrl: string;    // the user's drawing, preserved as-is
   createdAt: number;
+  /** Which wheel prize this drawing fulfils ("custom" = free draw). */
+  kind?: AccessoryKey;
+  /** Human label, e.g. "Flower". */
+  label?: string;
 }
 
 export interface AccessoryPlacement {

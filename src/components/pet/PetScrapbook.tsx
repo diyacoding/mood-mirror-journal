@@ -6,6 +6,7 @@ import { accessoryMeta, isCustomAccessory } from "@/lib/petTypes";
 import type { AccessoryId, PetItem } from "@/lib/petTypes";
 import { useIcons } from "@/lib/iconSets";
 import { cn } from "@/lib/utils";
+import { playPageFlip } from "@/lib/audioEngine";
 
 interface Props {
   /** Pets in any order — the scrapbook sorts oldest → newest itself. */
@@ -14,6 +15,8 @@ interface Props {
   /** Custom accessory art keyed by accessory id. */
   customArt?: Record<string, string>;
   onClose: () => void;
+  /** Text for the close action (defaults to a plain X). */
+  closeLabel?: string;
   /** Called by the empty-state button (send the user to mood logging). */
   onLogMood?: () => void;
 }
@@ -23,7 +26,7 @@ const fmtDate = (ts?: number) =>
     ? new Date(ts).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })
     : "Date unknown";
 
-export const PetScrapbook = ({ pets, points, customArt = {}, onClose, onLogMood }: Props) => {
+export const PetScrapbook = ({ pets, points, customArt = {}, onClose, closeLabel, onLogMood }: Props) => {
   const { prefs } = usePreferences();
   const icons = useIcons();
 
@@ -49,6 +52,8 @@ export const PetScrapbook = ({ pets, points, customArt = {}, onClose, onLogMood 
     if (next < 0 || next > pageCount - 1) return;
     setDir(delta > 0 ? "next" : "prev");
     setIndex(next);
+    // One short flip sound per completed turn (the engine ignores overlaps).
+    if (!prefs.reduceMotion) playPageFlip();
   };
 
   const toNextPet = 100 - (points % 100);
@@ -67,10 +72,14 @@ export const PetScrapbook = ({ pets, points, customArt = {}, onClose, onLogMood 
         </div>
         <button
           onClick={onClose}
-          aria-label="Close scrapbook"
-          className="h-10 w-10 rounded-full glass flex items-center justify-center"
+          aria-label={closeLabel ? `Close scrapbook and open ${closeLabel}` : "Close scrapbook"}
+          className={cn(
+            "rounded-full glass flex items-center justify-center gap-2",
+            closeLabel ? "h-10 px-4 text-[10px] uppercase tracking-[0.2em]" : "h-10 w-10",
+          )}
         >
           <X className="h-4 w-4" />
+          {closeLabel}
         </button>
       </div>
 

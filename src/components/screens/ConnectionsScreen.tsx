@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { signOut, User } from "firebase/auth";
-import { bumpCounter } from "@/lib/achievements";
+import { bumpCloudCounter } from "@/lib/achievementsApi";
 import { Copy, LogOut, Pencil, Send, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,8 @@ export const ConnectionsScreen = ({ user }: Props) => {
   const [shareMoodOpen, setShareMoodOpen] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
 
+  // Always resolve "You" from the live auth session, never from cached UI state.
+  const selfId = auth.currentUser?.uid ?? user.uid;
   const active = connection?.status === "active";
   const cid = connection?.id;
 
@@ -105,7 +107,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
     setText("");
     try {
       await sendTextMessage(cid, user.uid, t);
-      bumpCounter(user.uid, "lettersSent");
+      bumpCloudCounter(user.uid, "lettersSent");
     } catch (e: any) {
       toast.error("Failed to send");
       setText(t);
@@ -116,7 +118,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
     if (!cid) return;
     try {
       await sendDrawingMessage(cid, user.uid, dataUrl);
-      bumpCounter(user.uid, "lettersSent");
+      bumpCloudCounter(user.uid, "lettersSent");
       toast.success("Drawing sent");
     } catch (e: any) {
       console.error("Drawing send failed", e);
@@ -265,7 +267,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
                     >
                       <span className="text-xl">{icons.mood(m.mood)}</span>
                       <div className="text-[10px]">
-                        <div>{m.senderId === user.uid ? "You" : "Them"}</div>
+                        <div>{m.senderId === selfId ? "You" : "Them"}</div>
                         <div className="text-muted-foreground">
                           {format(new Date(m.createdAt), "MMM d")}
                         </div>

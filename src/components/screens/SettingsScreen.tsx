@@ -14,6 +14,7 @@ import {
   Info,
   Mail,
   ChevronRight,
+  Volume2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -31,6 +32,8 @@ import { toast } from "sonner";
 import { useTheme } from "@/hooks/useTheme";
 import { LIGHT_HUES, DARK_HUES, type HueOption } from "@/lib/themeHue";
 import { usePreferences, STICKER_SETS } from "@/hooks/usePreferences";
+import { Slider } from "@/components/ui/slider";
+import { playPageFlip, unlockAudio } from "@/lib/audioEngine";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -327,6 +330,64 @@ export const SettingsScreen = ({ entries }: Props) => {
               />
             </div>
           )}
+        </div>
+      </Card>
+
+      {/* App Audio */}
+      <Card
+        icon={<Volume2 className="h-5 w-5" />}
+        title="App Audio"
+        subtitle="Cozy background music and gentle sound effects."
+      >
+        <div className="mt-2 divide-y divide-border/40">
+          <ToggleRow
+            label="Background music"
+            hint="A soft, happy loop while you use the app."
+            checked={prefs.musicOn}
+            onChange={(v) => {
+              update({ musicOn: v });
+              if (v) unlockAudio();
+            }}
+          />
+          <div className="py-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Music volume</span>
+              <span className="text-xs text-muted-foreground">
+                {Math.round(prefs.musicVolume * 100)}%
+              </span>
+            </div>
+            <Slider
+              value={[Math.round(prefs.musicVolume * 100)]}
+              onValueChange={([v]) => update({ musicVolume: v / 100 })}
+              max={100}
+              step={5}
+              aria-label="Background music volume"
+            />
+          </div>
+          <div className="py-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Sound effects</span>
+              <span className="text-xs text-muted-foreground">
+                {Math.round(prefs.sfxVolume * 100)}%
+              </span>
+            </div>
+            <Slider
+              value={[Math.round(prefs.sfxVolume * 100)]}
+              onValueChange={([v]) => update({ sfxVolume: v / 100 })}
+              max={100}
+              step={5}
+              aria-label="Sound effects volume"
+            />
+            <button
+              onClick={() => {
+                unlockAudio();
+                playPageFlip();
+              }}
+              className="text-xs text-accent underline underline-offset-4"
+            >
+              Play a test sound
+            </button>
+          </div>
         </div>
       </Card>
 

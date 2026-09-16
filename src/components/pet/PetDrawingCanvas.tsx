@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Eraser, Paintbrush, Check, X, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { nudgeDrawingSound, startDrawingSound, stopDrawingSound } from "@/lib/audioEngine";
 
 interface Props {
   title?: string;
+  /** Optional hint shown under the title, e.g. "Draw your flower!". */
+  prompt?: string;
   onSave: (dataUrl: string) => Promise<void> | void;
   onClose: () => void;
 }
@@ -16,7 +19,7 @@ const PALETTE = [
   "#A8E6CF", "#F8C8B8", "#E8DCC4", "#FFF8E7",
 ];
 
-export const PetDrawingCanvas = ({ title = "Create your pet", onSave, onClose }: Props) => {
+export const PetDrawingCanvas = ({ title = "Create your pet", prompt, onSave, onClose }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const [color, setColor] = useState(PALETTE[3]);
@@ -61,6 +64,8 @@ export const PetDrawingCanvas = ({ title = "Create your pet", onSave, onClose }:
     ctx.lineWidth = size;
   }, []);
 
+  useEffect(() => () => stopDrawingSound(0), []);
+
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
@@ -82,13 +87,17 @@ export const PetDrawingCanvas = ({ title = "Create your pet", onSave, onClose }:
       y: ((e.clientY - r.top) / r.height) * c.height,
     };
   };
+  const last = useRef<{ x: number; y: number } | null>(null);
+
   const onDown = (e: React.PointerEvent) => {
     pushHistory();
+    startDrawingSound();
     drawing.current = true;
     const ctx = canvasRef.current!.getContext("2d")!;
     const { x, y } = pos(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
+    last.current = { x, y };
   };
   const onMove = (e: React.PointerEvent) => {
     if (!drawing.current) return;
@@ -96,9 +105,16 @@ export const PetDrawingCanvas = ({ title = "Create your pet", onSave, onClose }:
     const { x, y } = pos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
+    if (last.current) {
+      const speed = Math.hypot(x - last.current.x, y - last.current.y);
+      nudgeDrawingSound(speed);
+    }
+    last.current = { x, y };
   };
   const onUp = () => {
+    if (drawing.current) stopDrawingSound();
     drawing.current = false;
+    last.current = null;
     canvasRef.current?.getContext("2d")?.closePath();
   };
 
@@ -123,7 +139,10 @@ export const PetDrawingCanvas = ({ title = "Create your pet", onSave, onClose }:
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="glass-strong rounded-3xl p-4 w-full max-w-md space-y-3 shadow-glow">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-sm tracking-[0.25em] uppercase">{title}</h3>
+          <div>
+            <h3 className="font-display text-sm tracking-[0.25em] uppercase">{title}</h3>
+            {prompt && <p className="text-xs text-muted-foreground mt-1">{prompt}</p>}
+          </div>
           <button onClick={onClose} className="h-8 w-8 rounded-full glass flex items-center justify-center">
             <X className="h-4 w-4" />
           </button>
