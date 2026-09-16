@@ -1,27 +1,30 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import { ACCESSORIES, accessoryMeta } from "@/lib/petTypes";
+import { WHEEL_ACCESSORIES, accessoryMeta } from "@/lib/petTypes";
 import type { AccessoryKey } from "@/lib/petTypes";
 import { useIcons } from "@/lib/iconSets";
 import { cn } from "@/lib/utils";
 
 interface Props {
   spinsRemaining: number;
+  /** Spends a spin and resolves with the accessory the user must now draw. */
   onSpin: () => Promise<AccessoryKey | null>;
+  /** Open the drawing canvas for the won accessory. */
+  onCreate: (key: AccessoryKey) => void;
   onClose: () => void;
 }
 
-const SEG = 360 / ACCESSORIES.length;
+const SEG = 360 / WHEEL_ACCESSORIES.length;
 const SLICE_COLORS = ["#7B2DFF", "#C084FC", "#E9D5FF"];
 
 // Discrete slices so each section aligns exactly with its accessory icon.
-const CONIC = `conic-gradient(from 0deg, ${ACCESSORIES.map((_, i) => {
+const CONIC = `conic-gradient(from 0deg, ${WHEEL_ACCESSORIES.map((_, i) => {
   const c = SLICE_COLORS[i % SLICE_COLORS.length];
   return `${c} ${i * SEG}deg ${(i + 1) * SEG}deg`;
 }).join(", ")})`;
 
-export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
+export const AccessoryWheel = ({ spinsRemaining, onSpin, onCreate, onClose }: Props) => {
   const icons = useIcons();
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<AccessoryKey | null>(null);
@@ -33,14 +36,18 @@ export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
     setResult(null);
 
     const reward = await onSpin();
+    if (!reward) {
+      setSpinning(false);
+      return;
+    }
 
     // Land the won slice exactly under the top indicator.
-    const idx = Math.max(0, ACCESSORIES.findIndex((a) => a.key === reward));
+    const idx = Math.max(0, WHEEL_ACCESSORIES.findIndex((a) => a.key === reward));
     const center = idx * SEG + SEG / 2;
     setRotation((r) => {
       const turns = 4 * 360;
-      const target = -center; // slice center rotates to 0deg (top)
       const base = r + turns;
+      const target = -center; // slice center rotates to 0deg (top)
       const delta = ((target - base) % 360 + 360) % 360;
       return base + delta;
     });
@@ -49,6 +56,12 @@ export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
     setResult(reward);
     setSpinning(false);
   };
+
+  const label = result ? accessoryMeta(result).label : "";
+  const prompt =
+    result === "custom"
+      ? "Draw any accessory you like!"
+      : `Draw your ${label.toLowerCase()}!`;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -74,7 +87,7 @@ export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
               background: CONIC,
             }}
           >
-            {ACCESSORIES.map((a, i) => {
+            {WHEEL_ACCESSORIES.map((a, i) => {
               // Center of slice i, measured clockwise from the top (matches conic-gradient).
               const angle = i * SEG + SEG / 2;
               return (
@@ -92,25 +105,38 @@ export const AccessoryWheel = ({ spinsRemaining, onSpin, onClose }: Props) => {
           </div>
         </div>
 
-        {result && !spinning && (
-          <div className="space-y-2 animate-fade-in">
+        {result && !spinning ? (
+          <div className="space-y-3 animate-fade-in">
             <div className="text-5xl">{icons.accessory(result)}</div>
-            <p className="font-display text-lg text-glow tracking-wider">
-              {accessoryMeta(result).label}!
-            </p>
-            <p className="text-xs text-muted-foreground">Added to your inventory</p>
+            <p className="font-display text-lg text-glow tracking-wider">{label}!</p>
+            <p className="text-xs text-muted-foreground">{prompt}</p>
+            <Button
+              onClick={() => onCreate(result)}
+              className="w-full rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-12"
+            >
+              {result === "custom" ? "Start drawing" : `Draw my ${label.toLowerCase()}`}
+            </Button>
+            {spinsRemaining > 0 && (
+              <Button
+                onClick={handleSpin}
+                variant="outline"
+                className="w-full rounded-full glass border-accent/30 h-11"
+              >
+                Spin again
+              </Button>
+            )}
           </div>
+        ) : (
+          <Button
+            onClick={handleSpin}
+            disabled={spinning || spinsRemaining <= 0}
+            className={cn(
+              "w-full rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-12",
+            )}
+          >
+            {spinsRemaining <= 0 ? "No spins" : spinning ? "Spinning…" : "Spin"}
+          </Button>
         )}
-
-        <Button
-          onClick={handleSpin}
-          disabled={spinning || spinsRemaining <= 0}
-          className={cn(
-            "w-full rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-12",
-          )}
-        >
-          {spinsRemaining <= 0 ? "No spins" : spinning ? "Spinning…" : "Spin"}
-        </Button>
       </div>
     </div>
   );
