@@ -22,7 +22,7 @@ import { dataUrlToBlob } from "./imageCompress";
 import { findMyConnection } from "./connectionsApi";
 
 import type { AccessoryId, AccessoryKey, CustomAccessory, PetItem, PetOwnerDoc, PetSource } from "./petTypes";
-import { ACCESSORIES } from "./petTypes";
+import { ACCESSORIES, WHEEL_ACCESSORY_KEYS } from "./petTypes";
 
 
 const COL = "pets";
@@ -368,6 +368,42 @@ export async function consumeSpin(uid: string): Promise<AccessoryKey | null> {
 }
 
 /**
+ * Spend one spin and return the accessory the wheel landed on. Unlike the old
+ * reward flow this does NOT grant a ready-made accessory — the caller asks the
+ * user to draw it, and the drawing is saved with `addCustomAccessory`.
+ * The pick is a fresh unbiased draw over all wheel options every time.
+ */
+export async function consumeSpinForDraw(uid: string): Promise<AccessoryKey | null> {
+  const info = await resolveOwnerKey(uid);
+  const ref = ownerRef(info.key);
+  let picked: AccessoryKey | null = null;
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as PetOwnerDoc;
+    const spins = (data.spinsByUser ?? {})[uid] ?? 0;
+    if (spins <= 0) return;
+    picked = randomWheelKey();
+    tx.update(ref, { [`spinsByUser.${uid}`]: spins - 1 });
+  });
+  return picked;
+}
+
+/** Unbiased random pick across every wheel option. */
+export function randomWheelKey(): AccessoryKey {
+  const pool = WHEEL_ACCESSORY_KEYS;
+  const buf = new Uint32Array(1);
+  let n: number;
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(buf);
+    n = buf[0] / 2 ** 32;
+  } else {
+    n = Math.random();
+  }
+  return pool[Math.min(pool.length - 1, Math.floor(n * pool.length))];
+}
+
+/**
  * Save a user-drawn accessory. Stores the drawing itself (so it can be worn on the
  * pet as real art rather than a generic emoji) and adds it to the user's inventory.
  * Returns the new accessory id.
@@ -375,6 +411,7 @@ export async function consumeSpin(uid: string): Promise<AccessoryKey | null> {
 export async function addCustomAccessory(
   uid: string,
   imageDataUrl: string,
+  meta?: { kind?: AccessoryKey; label?: string },
 ): Promise<string> {
   if (!imageDataUrl?.startsWith("data:image/")) throw new Error("Invalid drawing");
   const info = await resolveOwnerKey(uid);
@@ -386,7 +423,13 @@ export async function addCustomAccessory(
     const data = (snap.exists() ? snap.data() : {}) as PetOwnerDoc;
     const inv: AccessoryId[] = (data.inventoryByUser ?? {})[uid] ?? [];
     const customs: CustomAccessory[] = (data.customAccessoriesByUser ?? {})[uid] ?? [];
-    const entry: CustomAccessory = { id, imageDataUrl, createdAt: Date.now() };
+    const entry: CustomAccessory = {
+      id,
+      imageDataUrl,
+      createdAt: Date.now(),
+      ...(meta?.kind ? { kind: meta.kind } : {}),
+      ...(meta?.label ? { label: meta.label } : {}),
+    };
     tx.set(
       ref,
       {
