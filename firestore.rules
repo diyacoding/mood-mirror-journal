@@ -117,6 +117,12 @@ service cloud.firestore {
       }
     }
 
+    // ─── Achievements ─────────────────────────────────────────
+    // One document per user, id = the signed-in user's uid.
+    match /user_achievements/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // ─── Pet Growth ───────────────────────────────────────────
     // Owner doc id is either "u_{uid}" (personal) or "c_{cid}" (shared).
     // `members` array on the doc lists which uids may read/write.
