@@ -204,36 +204,70 @@ export function stopDrawingSound(delayMs = 120) {
 }
 
 // ─── Background music ─────────────────────────────────────────
-// Gentle F-major pentatonic chimes over two soft pad tones. Loops forever
-// without a seam because it is generated note by note.
+// Original cozy visual-novel-inspired miniature in C major. This uses only
+// synthesized oscillators: no recording, sample, or third-party melody.
+// Four gentle chords and a 16-step piano-like phrase form a seamless loop.
+const DREAM_MELODY: Array<number | null> = [
+  659.25, 783.99, 987.77, 783.99,
+  659.25, null, 587.33, 659.25,
+  698.46, 659.25, 523.25, 587.33,
+  493.88, 587.33, 659.25, null,
+];
+const DREAM_CHORDS = [
+  [130.81, 164.81, 196.0],
+  [110.0, 130.81, 164.81],
+  [87.31, 130.81, 174.61],
+  [98.0, 146.83, 164.81],
+];
 
-const MELODY = [698.46, 880, 1046.5, 880, 783.99, 587.33, 698.46, 880, 1046.5, 1174.66, 880, 783.99];
-
-function chime(at: number, freq: number, vol: number) {
+function pianoNote(at: number, freq: number, vol: number) {
   if (!ctx || !musicGain) return;
-  const osc = ctx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.value = freq;
+  const body = ctx.createOscillator();
+  const shimmer = ctx.createOscillator();
+  body.type = "triangle";
+  shimmer.type = "sine";
+  body.frequency.value = freq;
+  shimmer.frequency.value = freq * 2;
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, at);
-  g.gain.exponentialRampToValueAtTime(vol, at + 0.05);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + 1.6);
-  osc.connect(g).connect(musicGain);
-  osc.start(at);
-  osc.stop(at + 1.7);
+  g.gain.exponentialRampToValueAtTime(vol, at + 0.025);
+  g.gain.exponentialRampToValueAtTime(vol * 0.22, at + 0.32);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + 1.45);
+  const shimmerGain = ctx.createGain();
+  shimmerGain.gain.value = 0.11;
+  body.connect(g);
+  shimmer.connect(shimmerGain).connect(g);
+  g.connect(musicGain);
+  body.start(at);
+  shimmer.start(at);
+  body.stop(at + 1.5);
+  shimmer.stop(at + 1.5);
 }
 
-function startPad() {
-  if (!ctx || !musicGain || padNodes.length) return;
-  [174.61, 261.63].forEach((f, i) => {
-    const osc = ctx!.createOscillator();
+function changePad(frequencies: number[]) {
+  if (!ctx || !musicGain) return;
+  const now = ctx.currentTime;
+  padNodes.forEach(({ osc, gain }) => {
+    try {
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(gain.gain.value, now);
+      gain.gain.linearRampToValueAtTime(0.0001, now + 0.7);
+      osc.stop(now + 0.8);
+    } catch {
+      try { osc.stop(); } catch { /* ignore */ }
+    }
+  });
+  padNodes = [];
+  frequencies.forEach((frequency, index) => {
+    if (!ctx || !musicGain) return;
+    const osc = ctx.createOscillator();
     osc.type = "triangle";
-    osc.frequency.value = f;
-    const g = ctx!.createGain();
-    g.gain.setValueAtTime(0.0001, ctx!.currentTime);
-    g.gain.linearRampToValueAtTime(i === 0 ? 0.05 : 0.03, ctx!.currentTime + 2);
+    osc.frequency.value = frequency;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(index === 0 ? 0.035 : 0.02, now + 0.9);
     osc.connect(g).connect(musicGain!);
-    osc.start();
+    osc.start(now);
     padNodes.push({ osc, gain: g });
   });
 }
@@ -243,16 +277,18 @@ export function startMusic() {
   if (!c || !settings.musicOn) return;
   if (c.state === "suspended") c.resume().catch(() => {});
   if (musicTimer != null) return;
-  startPad();
   const tick = () => {
     if (!ctx || !settings.musicOn) return;
     const at = ctx.currentTime + 0.05;
-    chime(at, MELODY[step % MELODY.length], 0.09);
-    if (step % 4 === 0) chime(at + 0.28, MELODY[(step + 2) % MELODY.length] / 2, 0.05);
+    const phraseStep = step % DREAM_MELODY.length;
+    if (phraseStep % 4 === 0) changePad(DREAM_CHORDS[Math.floor(phraseStep / 4)]);
+    const note = DREAM_MELODY[phraseStep];
+    if (note) pianoNote(at, note, 0.075);
+    if (phraseStep === 3 || phraseStep === 11) pianoNote(at + 0.18, note ? note * 1.5 : 987.77, 0.025);
     step++;
   };
   tick();
-  musicTimer = window.setInterval(tick, 900);
+  musicTimer = window.setInterval(tick, 720);
 }
 
 export function stopMusic() {
