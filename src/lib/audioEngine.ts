@@ -247,6 +247,7 @@ function pianoNote(at: number, freq: number, vol: number) {
 function changePad(frequencies: number[]) {
   if (!ctx || !musicGain) return;
   const now = ctx.currentTime;
+  const destination = musicGain;
   padNodes.forEach(({ osc, gain }) => {
     try {
       gain.gain.cancelScheduledValues(now);
@@ -266,7 +267,7 @@ function changePad(frequencies: number[]) {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, now);
     g.gain.linearRampToValueAtTime(index === 0 ? 0.035 : 0.02, now + 0.9);
-    osc.connect(g).connect(musicGain!);
+    osc.connect(g).connect(destination);
     osc.start(now);
     padNodes.push({ osc, gain: g });
   });
