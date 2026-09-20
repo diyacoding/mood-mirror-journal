@@ -351,7 +351,7 @@ export const SettingsScreen = ({ entries }: Props) => {
           />
           <div className="py-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm">Music volume</span>
+              <span id="music-volume-label" className="text-sm">Music volume</span>
               <span className="text-xs text-muted-foreground">
                 {Math.round(prefs.musicVolume * 100)}%
               </span>
@@ -361,12 +361,12 @@ export const SettingsScreen = ({ entries }: Props) => {
               onValueChange={([v]) => update({ musicVolume: v / 100 })}
               max={100}
               step={5}
-              aria-label="Background music volume"
+              aria-labelledby="music-volume-label"
             />
           </div>
           <div className="py-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm">Sound effects</span>
+              <span id="sound-effects-volume-label" className="text-sm">Sound effects</span>
               <span className="text-xs text-muted-foreground">
                 {Math.round(prefs.sfxVolume * 100)}%
               </span>
@@ -376,7 +376,7 @@ export const SettingsScreen = ({ entries }: Props) => {
               onValueChange={([v]) => update({ sfxVolume: v / 100 })}
               max={100}
               step={5}
-              aria-label="Sound effects volume"
+              aria-labelledby="sound-effects-volume-label"
             />
             <button
               onClick={() => {
