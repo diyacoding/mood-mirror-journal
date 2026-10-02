@@ -84,12 +84,14 @@ const Index = () => {
     <main className="app-shell min-h-screen">
       <div className="max-w-md mx-auto relative">
         {screen === "home" && (
-          <HomeScreen
-            entries={entries}
-            loading={loading}
-            onNavigate={setScreen}
-            onLogToday={() => { setPrefilledMood(undefined); setScreen("log"); }}
-          />
+          <div className="notebook-scope">
+            <HomeScreen
+              entries={entries}
+              loading={loading}
+              onNavigate={setScreen}
+              onLogToday={() => { setPrefilledMood(undefined); setScreen("log"); }}
+            />
+          </div>
         )}
         {screen === "log" && (
           <LogScreen
@@ -108,16 +110,22 @@ const Index = () => {
         {screen === "calendar" && <CalendarScreen entries={entries} />}
         {screen === "achievements" && <AchievementsScreen achievements={achievements} />}
         {screen === "profile" && (
-          <ProfileScreen
-            user={user}
-            entries={entries}
-            pets={pets}
-            currentPet={currentPet}
-            achievements={achievements}
-            onNavigate={setScreen}
-          />
+          <div className="notebook-scope">
+            <ProfileScreen
+              user={user}
+              entries={entries}
+              pets={pets}
+              currentPet={currentPet}
+              achievements={achievements}
+              onNavigate={setScreen}
+            />
+          </div>
         )}
-        {screen === "insights" && <InsightsScreen entries={entries} petOwner={petOwner} />}
+        {screen === "insights" && (
+          <div className="notebook-scope">
+            <InsightsScreen entries={entries} petOwner={petOwner} />
+          </div>
+        )}
         {screen === "connections" && <ConnectionsScreen user={user} />}
         {screen === "pet" && (
           <PetScreen
