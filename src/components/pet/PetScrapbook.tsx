@@ -82,7 +82,7 @@ export const PetScrapbook = ({ pets, points, customArt = {}, onClose, closeLabel
     settleTimerRef.current = window.setTimeout(() => {
       if (completed) {
         setSpread((current) => current + (direction === "next" ? 1 : -1));
-        playPageFlip();
+        if (!prefs.reduceMotion) playPageFlip();
       }
       setTurn(null);
       settleTimerRef.current = null;
