@@ -176,7 +176,7 @@ h1, h2, h3 {
     --paper-ink: 262 32% 18%;
     --paper-ink-soft: 262 12% 40%;
     --paper-accent: 275 55% 48%;
-    --paper-cast: 270 40% 25% / 0.35;
+    --paper-cast: 270 40% 25%;
     --paper-cover: 278 45% 62%;
     --paper-cover-edge: 278 40% 52%;
 
@@ -327,12 +327,12 @@ h1, h2, h3 {
     -webkit-backdrop-filter: none;
     border: 1px solid hsl(var(--paper-edge));
     border-radius: 6px 9px 7px 10px / 9px 6px 10px 7px;
-    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.4) inset, 0 10px 22px -14px hsl(var(--paper-cast)), 0 2px 4px -2px hsl(var(--paper-cast));
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.4) inset, 0 10px 22px -14px hsl(var(--paper-cast) / 0.35), 0 2px 4px -2px hsl(var(--paper-cast) / 0.35);
   }
   .notebook-scope .glass:nth-of-type(odd) { transform: rotate(-0.25deg); }
   .notebook-scope .glass:nth-of-type(even) { transform: rotate(0.2deg); }
   .notebook-scope .glass .glass,
-  .notebook-scope .glass-strong .glass { transform: none; box-shadow: 0 2px 6px -3px hsl(var(--paper-cast)); background-image: var(--paper-noise); }
+  .notebook-scope .glass-strong .glass { transform: none; box-shadow: 0 2px 6px -3px hsl(var(--paper-cast) / 0.35); background-image: var(--paper-noise); }
   .notebook-scope .glass .text-glow,
   .notebook-scope .glass-strong .text-glow { text-shadow: none; }
   .notebook-scope .glass .bg-foreground\/10 { background-color: hsl(var(--paper-ink) / 0.12); }
@@ -344,7 +344,7 @@ h1, h2, h3 {
     border-radius: 18px;
     padding: 8px;
     background: linear-gradient(135deg, hsl(var(--paper-cover)), hsl(var(--paper-cover) / 0.8));
-    box-shadow: 0 24px 50px -22px hsl(var(--paper-cast)), 0 0 0 1px hsl(var(--paper-cover-edge));
+    box-shadow: 0 24px 50px -22px hsl(var(--paper-cast) / 0.35), 0 0 0 1px hsl(var(--paper-cover-edge));
   }
   .book-inner { position: relative; height: 100%; }
   .book-spread {
