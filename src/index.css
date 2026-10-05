@@ -88,18 +88,18 @@ h1, h2, h3 {
     --scrapbook-fold: 274 36% 24%;
     --scrapbook-fold-shadow: 268 100% 2% / 0.48;
 
-    /* Notebook paper — dimmed cream so it sits softly on the dark shell */
-    --paper: 38 30% 86%;
-    --paper-edge: 34 18% 70%;
-    --paper-shade: 32 22% 72%;
-    --paper-line: 220 45% 55%;
-    --paper-ink: 262 30% 16%;
-    --paper-ink-soft: 262 12% 36%;
-    --paper-accent: 272 55% 42%;
+    /* Notebook paper — warm, softly aged ivory with faded cyan ruling */
+    --paper: 47 28% 84%;
+    --paper-edge: 43 20% 66%;
+    --paper-shade: 40 23% 70%;
+    --paper-line: 194 42% 43%;
+    --paper-ink: 263 28% 15%;
+    --paper-ink-soft: 263 12% 34%;
+    --paper-accent: 275 50% 39%;
     --paper-cast: 268 80% 3%;
     --paper-cover: 270 45% 22%;
     --paper-cover-edge: 270 50% 32%;
-    --paper-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.28 0 0 0 0 0.2 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    --paper-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.34 0 0 0 .22 0 .28 0 0 .18 0 0 .18 0 .1 0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.52'/%3E%3C/svg%3E");
 
     --sidebar-background: 270 60% 8%;
     --sidebar-foreground: 270 80% 90%;
@@ -169,10 +169,10 @@ h1, h2, h3 {
     --scrapbook-fold: 280 48% 91%;
     --scrapbook-fold-shadow: 270 45% 28% / 0.2;
 
-    --paper: 40 45% 97%;
-    --paper-edge: 36 22% 82%;
-    --paper-shade: 34 28% 84%;
-    --paper-line: 215 60% 62%;
+    --paper: 48 39% 92%;
+    --paper-edge: 43 23% 76%;
+    --paper-shade: 41 28% 80%;
+    --paper-line: 194 48% 47%;
     --paper-ink: 262 32% 18%;
     --paper-ink-soft: 262 12% 40%;
     --paper-accent: 275 55% 48%;
@@ -304,9 +304,11 @@ h1, h2, h3 {
     background-color: hsl(var(--paper));
     background-image:
       var(--paper-noise),
-      radial-gradient(120% 80% at 20% 0%, hsl(0 0% 100% / 0.35), transparent 60%),
-      radial-gradient(90% 70% at 100% 100%, hsl(var(--paper-shade) / 0.35), transparent 70%);
-    background-size: 180px 180px, auto, auto;
+      repeating-linear-gradient(180deg, transparent 0 31px, hsl(var(--paper-line) / 0.55) 31px 32px),
+      radial-gradient(120% 80% at 20% 0%, hsl(0 0% 100% / 0.22), transparent 62%),
+      radial-gradient(90% 70% at 100% 100%, hsl(var(--paper-shade) / 0.38), transparent 72%);
+    background-size: 220px 220px, auto, auto, auto;
+    background-position: 0 0, 0 23px, 0 0, 0 0;
   }
   /* Individual paper pieces for Home / Insights / Profile */
   .notebook-paper,
@@ -319,15 +321,16 @@ h1, h2, h3 {
     background-color: hsl(var(--paper));
     background-image:
       var(--paper-noise),
-      repeating-linear-gradient(180deg, transparent 0 25px, hsl(var(--paper-line) / 0.22) 25px 26px),
-      radial-gradient(120% 80% at 15% 0%, hsl(0 0% 100% / 0.35), transparent 60%),
-      radial-gradient(90% 70% at 100% 100%, hsl(var(--paper-shade) / 0.3), transparent 70%);
-    background-size: 180px 180px, auto, auto, auto;
+      repeating-linear-gradient(180deg, transparent 0 31px, hsl(var(--paper-line) / 0.55) 31px 32px),
+      radial-gradient(120% 80% at 15% 0%, hsl(0 0% 100% / 0.22), transparent 62%),
+      radial-gradient(90% 70% at 100% 100%, hsl(var(--paper-shade) / 0.38), transparent 72%);
+    background-size: 220px 220px, auto, auto, auto;
+    background-position: 0 0, 0 23px, 0 0, 0 0;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border: 1px solid hsl(var(--paper-edge));
-    border-radius: 6px 9px 7px 10px / 9px 6px 10px 7px;
-    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.4) inset, 0 10px 22px -14px hsl(var(--paper-cast) / 0.35), 0 2px 4px -2px hsl(var(--paper-cast) / 0.35);
+    border: 1px solid hsl(var(--paper-edge) / 0.82);
+    border-radius: 5px 10px 6px 9px / 9px 5px 11px 6px;
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.32), inset 1px 0 0 hsl(var(--paper-shade) / 0.28), 0 13px 24px -16px hsl(var(--paper-cast) / 0.48), 0 2px 5px -2px hsl(var(--paper-cast) / 0.32);
   }
   .notebook-scope .glass:nth-of-type(odd) { transform: rotate(-0.25deg); }
   .notebook-scope .glass:nth-of-type(even) { transform: rotate(0.2deg); }
