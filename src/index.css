@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 body {
   font-family: 'Inter', sans-serif;
 }
 
-h1, h2, h3 {
-  font-family: 'Cinzel', serif;
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
 }
 @tailwind base;
 @tailwind components;
@@ -101,6 +101,15 @@ h1, h2, h3 {
     --paper-cover-edge: 270 50% 32%;
     --paper-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.34 0 0 0 .22 0 .28 0 0 .18 0 0 .18 0 .1 0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.52'/%3E%3C/svg%3E");
 
+    --font-heading: 'Dancing Script', 'Segoe Script', cursive;
+    /* Theme-aware text + cloud tokens (follow hue shifts via base tokens) */
+    --theme-text: var(--foreground);
+    --theme-text-muted: var(--muted-foreground);
+    --theme-heading: var(--accent);
+    --theme-background: var(--background);
+    --theme-cloud: var(--secondary);
+    --cloud-shadow: 0 14px 30px -18px hsl(var(--background) / 0.9), 0 0 0 1px hsl(var(--accent) / 0.1);
+
     --sidebar-background: 270 60% 8%;
     --sidebar-foreground: 270 80% 90%;
     --sidebar-primary: 264 100% 59%;
@@ -180,6 +189,10 @@ h1, h2, h3 {
     --paper-cover: 278 45% 62%;
     --paper-cover-edge: 278 40% 52%;
 
+    --theme-heading: var(--primary);
+    --theme-cloud: var(--card);
+    --cloud-shadow: 0 14px 30px -18px hsl(var(--primary) / 0.35), 0 0 0 1px hsl(var(--primary) / 0.08);
+
     --sidebar-background: 280 60% 96%;
     --sidebar-foreground: 270 55% 22%;
     --sidebar-primary: 264 85% 55%;
@@ -233,15 +246,22 @@ h1, h2, h3 {
   }
   html { -webkit-tap-highlight-color: transparent; }
 
-  h1, h2, .font-display {
-    font-family: 'Cinzel', serif;
-    letter-spacing: 0.02em;
-    font-weight: 500;
+  h1, h2, h3, h4, .font-display, [role="dialog"] h2 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: hsl(var(--theme-heading));
   }
 }
 
 @layer utilities {
-  .font-display { font-family: 'Cinzel', serif; letter-spacing: 0.06em; }
+  /* Cursive heading system — one font for every title/subtitle */
+  .font-display, h1, h2, h3, h4 {
+    font-family: var(--font-heading) !important;
+    letter-spacing: 0.01em !important;
+    text-transform: none !important;
+    line-height: 1.2;
+  }
+  h3.font-display, h3 { font-size: max(1.15rem, 1em); }
   .font-body { font-family: 'Inter', sans-serif; }
 
   .gradient-primary { background: var(--gradient-primary); }
@@ -257,18 +277,24 @@ h1, h2, h3 {
   .shadow-card { box-shadow: var(--shadow-card); }
   .transition-smooth { transition: var(--transition-smooth); }
 
-  /* Glassmorphism */
-  .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(22px) saturate(160%);
-    -webkit-backdrop-filter: blur(22px) saturate(160%);
-    border: 1px solid var(--glass-border-color);
+  /* Soft text clouds (formerly glass) */
+  .glass, .glass-strong, .cloud {
+    background: hsl(var(--theme-cloud));
+    color: hsl(var(--theme-text));
+    border: 0;
+    border-radius: 2rem 2.6rem 2.2rem 2.8rem / 2.4rem 2rem 2.8rem 2.2rem !important;
+    box-shadow: var(--cloud-shadow);
   }
-  .glass-strong {
-    background: var(--glass-strong-bg);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
-    border: 1px solid var(--glass-strong-border-color);
+  .glass-strong { background: hsl(var(--theme-cloud) / 1); filter: brightness(1.04); }
+  html.light .glass-strong { filter: none; }
+  .glass:nth-of-type(odd) { border-radius: 2.6rem 2rem 2.8rem 2.2rem / 2.2rem 2.8rem 2rem 2.6rem !important; }
+  .glass .glass, .glass-strong .glass, .glass .glass-strong {
+    background: hsl(var(--theme-background) / 0.35);
+    box-shadow: none;
+    filter: none;
+  }
+  html.light .glass .glass, html.light .glass-strong .glass, html.light .glass .glass-strong {
+    background: hsl(var(--secondary));
   }
   .text-glow {
     text-shadow: 0 0 24px hsl(var(--glow) / 0.6), 0 0 48px hsl(var(--glow-deep) / 0.35);
@@ -304,42 +330,10 @@ h1, h2, h3 {
     background-color: hsl(var(--paper));
     background-image:
       var(--paper-noise),
-      repeating-linear-gradient(180deg, transparent 0 31px, hsl(var(--paper-line) / 0.55) 31px 32px),
       radial-gradient(120% 80% at 20% 0%, hsl(0 0% 100% / 0.22), transparent 62%),
       radial-gradient(90% 70% at 100% 100%, hsl(var(--paper-shade) / 0.38), transparent 72%);
-    background-size: 220px 220px, auto, auto, auto;
-    background-position: 0 0, 0 23px, 0 0, 0 0;
+    background-size: 220px 220px, auto, auto;
   }
-  /* Individual paper pieces for Home / Insights / Profile */
-  .notebook-paper,
-  .notebook-scope .glass,
-  .notebook-scope .glass-strong {
-    --foreground: var(--paper-ink);
-    --muted-foreground: var(--paper-ink-soft);
-    --accent: var(--paper-accent);
-    color: hsl(var(--paper-ink));
-    background-color: hsl(var(--paper));
-    background-image:
-      var(--paper-noise),
-      repeating-linear-gradient(180deg, transparent 0 31px, hsl(var(--paper-line) / 0.55) 31px 32px),
-      radial-gradient(120% 80% at 15% 0%, hsl(0 0% 100% / 0.22), transparent 62%),
-      radial-gradient(90% 70% at 100% 100%, hsl(var(--paper-shade) / 0.38), transparent 72%);
-    background-size: 220px 220px, auto, auto, auto;
-    background-position: 0 0, 0 23px, 0 0, 0 0;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border: 1px solid hsl(var(--paper-edge) / 0.82);
-    border-radius: 5px 10px 6px 9px / 9px 5px 11px 6px;
-    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.32), inset 1px 0 0 hsl(var(--paper-shade) / 0.28), 0 13px 24px -16px hsl(var(--paper-cast) / 0.48), 0 2px 5px -2px hsl(var(--paper-cast) / 0.32);
-  }
-  .notebook-scope .glass:nth-of-type(odd) { transform: rotate(-0.25deg); }
-  .notebook-scope .glass:nth-of-type(even) { transform: rotate(0.2deg); }
-  .notebook-scope .glass .glass,
-  .notebook-scope .glass-strong .glass { transform: none; box-shadow: 0 2px 6px -3px hsl(var(--paper-cast) / 0.35); background-image: var(--paper-noise); }
-  .notebook-scope .glass .text-glow,
-  .notebook-scope .glass-strong .text-glow { text-shadow: none; }
-  .notebook-scope .glass .bg-foreground\/10 { background-color: hsl(var(--paper-ink) / 0.12); }
-
   /* ---------- Open-book pet scrapbook ---------- */
   .book {
     position: relative;
