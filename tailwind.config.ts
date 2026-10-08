@@ -64,7 +64,7 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        display: ['Cinzel', 'serif'],
+        display: ['Dancing Script', 'cursive'],
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       keyframes: {
