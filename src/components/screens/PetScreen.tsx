@@ -99,11 +99,6 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
     setHatching(true);
   }, [hatchTrigger, creator, hatching]);
 
-  const forceHatch = () => {
-    console.info("[pet-flow] 🔧 Force hatch pressed");
-    hatchHandledRef.current = null;
-    setHatching(true);
-  };
 
   const handleCreate = async (dataUrl: string) => {
     try {
@@ -261,14 +256,6 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
           className="w-full rounded-full gradient-primary text-primary-foreground border-0 shadow-glow h-11"
         >
           {mySpins > 0 ? "Spin the wheel" : "Log more moods"}
-        </Button>
-        {/* Debug: force hatch — useful if the egg ever fails to trigger */}
-        <Button
-          onClick={forceHatch}
-          variant="outline"
-          className="w-full rounded-full glass border-accent/40 h-10 text-xs tracking-widest uppercase"
-        >
-          {icons.misc("egg")} Force Hatch Egg (debug)
         </Button>
       </div>
 

@@ -175,7 +175,8 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
       err,
     });
     // Re-throw is too aggressive (mood is already saved). Instead, mark so UI
-    // can still auto-navigate to the pet screen and the user can force-hatch.
+    // can still auto-navigate to the pet screen and the egg hatch can trigger
+    // from the pending-new-pet state.
     petAward.pendingNewPet = true;
     petAward.firstHatch = true;
   }
