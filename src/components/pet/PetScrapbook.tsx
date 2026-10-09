@@ -32,10 +32,7 @@ type TurnState = {
 };
 type Side = "left" | "right";
 
-const fmtDate = (ts?: number) =>
-  ts
-    ? new Date(ts).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })
-    : "Date unknown";
+const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
@@ -142,12 +139,6 @@ export const PetScrapbook = ({ pets, points, customArt = {}, onClose, closeLabel
                 />
               </div>
               <h3 className="font-display text-lg sm:text-xl tracking-wider break-words">{pet.name ?? "Unnamed friend"}</h3>
-              <p className="text-[9px] uppercase tracking-[0.2em] text-accent">
-                {pet.source === "photo" ? "📸 Real pet photo" : "🎨 Drawn by you"}
-              </p>
-              <p className="text-[11px] italic text-muted-foreground">
-                {pet.source === "photo" ? "added with love on" : "hatched with love on"} {fmtDate(pet.createdAt)}
-              </p>
               {(pet.accessories ?? []).length > 0 && (
                 <div className="flex flex-wrap justify-center gap-1.5 pt-1">
                   {(pet.accessories ?? []).map((accessory: AccessoryId) => {
