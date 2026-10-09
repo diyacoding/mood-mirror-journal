@@ -288,14 +288,22 @@ export const ConnectionsScreen = ({ user }: Props) => {
                 Say hi — your messages stay between you two.
               </p>
             ) : (
-              messages.map((m) => (
-                <MessageItem
-                  key={m.id}
-                  connectionId={cid!}
-                  msg={m}
-                  selfId={user.uid}
-                />
-              ))
+              messages.map((m, i) => {
+                const showHeader =
+                  i === 0 || dayKey(messages[i - 1].createdAt) !== dayKey(m.createdAt);
+                return (
+                  <div key={m.id} className="space-y-3">
+                    {showHeader && (
+                      <div className="flex justify-center pt-1">
+                        <span className="cloud px-3 py-1 text-[11px] font-medium text-[hsl(var(--theme-text))]">
+                          {dayLabel(m.createdAt)}
+                        </span>
+                      </div>
+                    )}
+                    <MessageItem connectionId={cid!} msg={m} selfId={user.uid} />
+                  </div>
+                );
+              })
             )}
           </div>
 
