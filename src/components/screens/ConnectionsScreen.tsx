@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { dayKey, dayLabel } from "@/lib/chatDates";
 import { signOut, User } from "firebase/auth";
 import { bumpCloudCounter } from "@/lib/achievementsApi";
 import { Copy, LogOut, Pencil, Send, UserPlus, Users } from "lucide-react";
