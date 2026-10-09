@@ -34,8 +34,6 @@ type Side = "left" | "right";
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
-const clamp = (value: number) => Math.max(0, Math.min(1, value));
-
 export const PetScrapbook = ({ pets, points, customArt = {}, onClose, closeLabel, onLogMood }: Props) => {
   const { prefs } = usePreferences();
   const icons = useIcons();
