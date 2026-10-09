@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { formatSentAt } from "@/lib/chatDates";
 import { Mail, MailOpen } from "lucide-react";
 import {
   subscribeReactions,
@@ -67,7 +68,7 @@ export const MessageItem = ({ connectionId, msg, selfId }: Props) => {
           </div>
         </button>
         <span className="text-[10px] text-muted-foreground px-1">
-          {format(new Date(msg.createdAt), "p")}
+          {formatSentAt(msg.createdAt)}
         </span>
       </div>
     );
@@ -101,7 +102,7 @@ export const MessageItem = ({ connectionId, msg, selfId }: Props) => {
       </div>
 
       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground px-1">
-        <span>{format(new Date(msg.createdAt), "p")}</span>
+        <span>{formatSentAt(msg.createdAt)}</span>
         <button
           onClick={() => setPickerOpen((v) => !v)}
           className="opacity-60 hover:opacity-100 transition-smooth"
