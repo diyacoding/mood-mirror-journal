@@ -64,7 +64,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        display: ['Dancing Script', 'cursive'],
+        display: ['Fredoka', 'sans-serif'],
+        sans: ['Fredoka', 'ui-rounded', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       keyframes: {
