@@ -66,7 +66,6 @@ export default {
       fontFamily: {
         display: ['Fredoka', 'sans-serif'],
         sans: ['Fredoka', 'ui-rounded', 'system-ui', 'sans-serif'],
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         "accordion-down": {
