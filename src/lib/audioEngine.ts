@@ -338,7 +338,6 @@ const CLICKABLE = 'button, [role="button"], [role="switch"], [role="tab"], [role
 export function installClickSoundListener() {
   if (typeof window === "undefined") return;
   window.addEventListener("click", (e) => {
-    if (!e.isTrusted && e.detail === 0 && !(e.target instanceof HTMLElement)) return;
     const el = (e.target as Element | null)?.closest?.(CLICKABLE) as HTMLElement | null;
     if (!el) return;
     if ((el as HTMLButtonElement).disabled || el.getAttribute("aria-disabled") === "true") return;
