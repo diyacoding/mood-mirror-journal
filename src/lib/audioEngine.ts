@@ -3,7 +3,7 @@
 //
 //  • playPageFlip()      — short paper flip for scrapbook page turns
 //  • startDrawing()/stopDrawing() — soft chalk-on-whiteboard while a stroke happens
-//  • background music    — cozy, looping pentatonic chimes over a warm pad
+//  • background music    — soft ambient pads with rare bell tones
 //
 // Nothing is created until the user interacts with the page, so browser autoplay
 // policies are respected and no errors are thrown when audio is unavailable.
@@ -14,9 +14,10 @@ export interface AudioSettings {
   musicVolume: number;
   /** 0–1 */
   sfxVolume: number;
+  sfxOn: boolean;
 }
 
-let settings: AudioSettings = { musicOn: false, musicVolume: 0.3, sfxVolume: 0.5 };
+let settings: AudioSettings = { musicOn: false, musicVolume: 0.3, sfxVolume: 0.5, sfxOn: true };
 let ctx: AudioContext | null = null;
 let musicGain: GainNode | null = null;
 let sfxGain: GainNode | null = null;
@@ -49,7 +50,7 @@ function ensureContext(): AudioContext | null {
     musicGain.gain.value = settings.musicOn ? clamp01(settings.musicVolume) * 0.25 : 0;
     musicGain.connect(ctx.destination);
     sfxGain = ctx.createGain();
-    sfxGain.gain.value = clamp01(settings.sfxVolume) * 0.6;
+    sfxGain.gain.value = settings.sfxOn ? clamp01(settings.sfxVolume) * 0.6 : 0;
     sfxGain.connect(ctx.destination);
 
     // Reusable white-noise buffer (2s) for flip + chalk textures.
@@ -85,9 +86,10 @@ export function setAudioSettings(next: AudioSettings) {
     musicOn: next.musicOn,
     musicVolume: clamp01(next.musicVolume),
     sfxVolume: clamp01(next.sfxVolume),
+    sfxOn: next.sfxOn !== false,
   };
   if (!ctx) return;
-  if (sfxGain) sfxGain.gain.value = settings.sfxVolume * 0.6;
+  if (sfxGain) sfxGain.gain.value = settings.sfxOn ? settings.sfxVolume * 0.6 : 0;
   if (musicGain) {
     const target = settings.musicOn ? settings.musicVolume * 0.25 : 0;
     try {
@@ -108,7 +110,7 @@ export function getAudioSettings(): AudioSettings {
 
 /** One short paper-flip sound. Ignores calls that arrive too fast to overlap. */
 export function playPageFlip() {
-  if (settings.sfxVolume <= 0) return;
+  if (!settings.sfxOn || settings.sfxVolume <= 0) return;
   const now = Date.now();
   if (now - lastFlip < 160) return;
   lastFlip = now;
@@ -204,92 +206,87 @@ export function stopDrawingSound(delayMs = 120) {
 }
 
 // ─── Background music ─────────────────────────────────────────
-// Original cozy visual-novel-inspired miniature in C major. This uses only
-// synthesized oscillators: no recording, sample, or third-party melody.
-// Four gentle chords and a 16-step piano-like phrase form a seamless loop.
-const DREAM_MELODY: Array<number | null> = [
-  659.25, 783.99, 987.77, 783.99,
-  659.25, null, 587.33, 659.25,
-  698.46, 659.25, 523.25, 587.33,
-  493.88, 587.33, 659.25, null,
+// Original ambient loop: slow, airy pads (detuned sines through a soft low-pass)
+// that crossfade between four warm chords, with rare, quiet bell tones on top.
+// Fully synthesized — no recording, sample, or third-party melody.
+const AMBIENT_CHORDS = [
+  [130.81, 196.0, 246.94, 329.63], // Cmaj7
+  [110.0, 164.81, 196.0, 261.63],  // Am7
+  [87.31, 130.81, 164.81, 220.0],  // Fmaj7
+  [98.0, 146.83, 196.0, 246.94],   // G6-ish
 ];
-const DREAM_CHORDS = [
-  [130.81, 164.81, 196.0],
-  [110.0, 130.81, 164.81],
-  [87.31, 130.81, 174.61],
-  [98.0, 146.83, 164.81],
-];
+const BELLS = [523.25, 587.33, 659.25, 783.99, 880.0];
+const CHORD_SECONDS = 9;
+let musicFilter: BiquadFilterNode | null = null;
 
-function pianoNote(at: number, freq: number, vol: number) {
-  if (!ctx || !musicGain) return;
-  const body = ctx.createOscillator();
-  const shimmer = ctx.createOscillator();
-  body.type = "triangle";
-  shimmer.type = "sine";
-  body.frequency.value = freq;
-  shimmer.frequency.value = freq * 2;
+function bell(at: number, freq: number, vol: number) {
+  if (!ctx || !musicFilter) return;
+  const o = ctx.createOscillator();
+  o.type = "sine";
+  o.frequency.value = freq;
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, at);
-  g.gain.exponentialRampToValueAtTime(vol, at + 0.025);
-  g.gain.exponentialRampToValueAtTime(vol * 0.22, at + 0.32);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + 1.45);
-  const shimmerGain = ctx.createGain();
-  shimmerGain.gain.value = 0.11;
-  body.connect(g);
-  shimmer.connect(shimmerGain).connect(g);
-  g.connect(musicGain);
-  body.start(at);
-  shimmer.start(at);
-  body.stop(at + 1.5);
-  shimmer.stop(at + 1.5);
+  g.gain.linearRampToValueAtTime(vol, at + 0.6);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + 5);
+  o.connect(g).connect(musicFilter);
+  o.start(at);
+  o.stop(at + 5.1);
 }
 
 function changePad(frequencies: number[]) {
-  if (!ctx || !musicGain) return;
+  if (!ctx || !musicFilter) return;
   const now = ctx.currentTime;
-  const destination = musicGain;
+  const dest = musicFilter;
   padNodes.forEach(({ osc, gain }) => {
     try {
       gain.gain.cancelScheduledValues(now);
       gain.gain.setValueAtTime(gain.gain.value, now);
-      gain.gain.linearRampToValueAtTime(0.0001, now + 0.7);
-      osc.stop(now + 0.8);
+      gain.gain.linearRampToValueAtTime(0.0001, now + 4);
+      osc.stop(now + 4.2);
     } catch {
       try { osc.stop(); } catch { /* ignore */ }
     }
   });
   padNodes = [];
-  frequencies.forEach((frequency, index) => {
-    if (!ctx || !musicGain) return;
-    const osc = ctx.createOscillator();
-    osc.type = "triangle";
-    osc.frequency.value = frequency;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, now);
-    g.gain.linearRampToValueAtTime(index === 0 ? 0.035 : 0.02, now + 0.9);
-    osc.connect(g).connect(destination);
-    osc.start(now);
-    padNodes.push({ osc, gain: g });
+  frequencies.forEach((frequency, i) => {
+    [-4, 4].forEach((cents) => {
+      if (!ctx) return;
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = frequency;
+      osc.detune.value = cents;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.linearRampToValueAtTime(i === 0 ? 0.03 : 0.018, now + 4);
+      osc.connect(g).connect(dest);
+      osc.start(now);
+      padNodes.push({ osc, gain: g });
+    });
   });
 }
 
 export function startMusic() {
   const c = ensureContext();
-  if (!c || !settings.musicOn) return;
+  if (!c || !settings.musicOn || !musicGain) return;
   if (c.state === "suspended") c.resume().catch(() => {});
   if (musicTimer != null) return;
+  if (!musicFilter) {
+    musicFilter = c.createBiquadFilter();
+    musicFilter.type = "lowpass";
+    musicFilter.frequency.value = 1400;
+    musicFilter.Q.value = 0.3;
+    musicFilter.connect(musicGain);
+  }
   const tick = () => {
     if (!ctx || !settings.musicOn) return;
-    const at = ctx.currentTime + 0.05;
-    const phraseStep = step % DREAM_MELODY.length;
-    if (phraseStep % 4 === 0) changePad(DREAM_CHORDS[Math.floor(phraseStep / 4)]);
-    const note = DREAM_MELODY[phraseStep];
-    if (note) pianoNote(at, note, 0.075);
-    if (phraseStep === 3 || phraseStep === 11) pianoNote(at + 0.18, note ? note * 1.5 : 987.77, 0.025);
+    changePad(AMBIENT_CHORDS[step % AMBIENT_CHORDS.length]);
+    const at = ctx.currentTime + 1.5;
+    bell(at, BELLS[Math.floor(Math.random() * BELLS.length)], 0.02);
+    if (Math.random() < 0.5) bell(at + 4, BELLS[Math.floor(Math.random() * BELLS.length)], 0.014);
     step++;
   };
   tick();
-  musicTimer = window.setInterval(tick, 720);
+  musicTimer = window.setInterval(tick, CHORD_SECONDS * 1000);
 }
 
 export function stopMusic() {
@@ -302,12 +299,48 @@ export function stopMusic() {
     padNodes.forEach(({ osc, gain }) => {
       try {
         gain.gain.cancelScheduledValues(t);
-        gain.gain.linearRampToValueAtTime(0.0001, t + 0.6);
-        osc.stop(t + 0.8);
+        gain.gain.setValueAtTime(gain.gain.value, t);
+        gain.gain.linearRampToValueAtTime(0.0001, t + 1.5);
+        osc.stop(t + 1.6);
       } catch {
         try { osc.stop(); } catch { /* ignore */ }
       }
     });
   }
   padNodes = [];
+}
+
+// ─── UI click ────────────────────────────────────────────────
+let lastClick = 0;
+export function playClick() {
+  if (!settings.sfxOn || settings.sfxVolume <= 0) return;
+  const now = Date.now();
+  if (now - lastClick < 60) return;
+  lastClick = now;
+  const c = ensureContext();
+  if (!c || !sfxGain) return;
+  if (c.state === "suspended") c.resume().catch(() => {});
+  const t = c.currentTime;
+  const o = c.createOscillator();
+  o.type = "sine";
+  o.frequency.setValueAtTime(880, t);
+  o.frequency.exponentialRampToValueAtTime(520, t + 0.06);
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.12, t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+  o.connect(g).connect(sfxGain);
+  o.start(t);
+  o.stop(t + 0.1);
+}
+
+const CLICKABLE = 'button, [role="button"], [role="switch"], [role="tab"], [role="checkbox"], [role="radio"], [role="menuitem"], [role="option"], a[href]';
+export function installClickSoundListener() {
+  if (typeof window === "undefined") return;
+  window.addEventListener("click", (e) => {
+    const el = (e.target as Element | null)?.closest?.(CLICKABLE) as HTMLElement | null;
+    if (!el) return;
+    if ((el as HTMLButtonElement).disabled || el.getAttribute("aria-disabled") === "true") return;
+    playClick();
+  }, { capture: true, passive: true });
 }

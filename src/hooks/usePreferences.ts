@@ -21,6 +21,8 @@ export interface Preferences {
   musicVolume: number;
   /** Sound-effects volume (page flips, drawing), 0–1. */
   sfxVolume: number;
+  /** Sound effects on/off (clicks, page flips, drawing). */
+  sfxOn: boolean;
 }
 
 const KEY = "mm.preferences";
@@ -44,6 +46,7 @@ const DEFAULTS: Preferences = {
   musicOn: false,
   musicVolume: 0.3,
   sfxVolume: 0.5,
+  sfxOn: true,
 };
 
 function read(): Preferences {
@@ -75,7 +78,7 @@ export function applyPreferences(p: Preferences) {
   root.classList.toggle("pref-reduce-motion", p.reduceMotion);
   root.classList.toggle("pref-high-contrast", p.highContrast);
   applyThemeHues(p.lightHue, p.darkHue);
-  setAudioSettings({ musicOn: p.musicOn, musicVolume: p.musicVolume, sfxVolume: p.sfxVolume });
+  setAudioSettings({ musicOn: p.musicOn, musicVolume: p.musicVolume, sfxVolume: p.sfxVolume, sfxOn: p.sfxOn });
 }
 
 export function getInitialPreferences(): Preferences {
