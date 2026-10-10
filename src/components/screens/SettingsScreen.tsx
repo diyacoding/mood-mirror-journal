@@ -342,7 +342,7 @@ export const SettingsScreen = ({ entries }: Props) => {
         <div className="mt-2 divide-y divide-border/40">
           <ToggleRow
             label="Background music"
-            hint="A soft, happy loop while you use the app."
+            hint="A soft, ambient loop while you use the app."
             checked={prefs.musicOn}
             onChange={(v) => {
               update({ musicOn: v });
@@ -364,9 +364,15 @@ export const SettingsScreen = ({ entries }: Props) => {
               aria-labelledby="music-volume-label"
             />
           </div>
+          <ToggleRow
+            label="Sound effects"
+            hint="Soft clicks, page flips and drawing sounds."
+            checked={prefs.sfxOn}
+            onChange={(v) => update({ sfxOn: v })}
+          />
           <div className="py-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span id="sound-effects-volume-label" className="text-sm">Sound effects</span>
+              <span id="sound-effects-volume-label" className="text-sm">Sound effects volume</span>
               <span className="text-xs text-muted-foreground">
                 {Math.round(prefs.sfxVolume * 100)}%
               </span>
