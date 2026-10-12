@@ -82,7 +82,8 @@ const Index = () => {
 
   return (
     <main className="app-shell min-h-screen">
-      <div className="max-w-md mx-auto relative">
+      {/* Keyed by account: switching users remounts every screen, wiping all per-account UI state. */}
+      <div key={user.uid} className="max-w-md mx-auto relative">
         {screen === "home" && (
           <div className="notebook-scope">
             <HomeScreen
