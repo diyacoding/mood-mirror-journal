@@ -47,7 +47,6 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
   const [hatching, setHatching] = useState(false);
   // The Pets tab opens straight into the scrapbook, on the newest pet.
   const [scrapbook, setScrapbook] = useState(true);
-  const hatchHandledRef = useRef<string | null>(null);
 
   const openCreator = () => {
     setCreateMode("choice");

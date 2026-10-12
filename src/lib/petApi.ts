@@ -135,7 +135,24 @@ export function subscribePetItems(
 
 // ─── Mutations ────────────────────────────────────────────────
 
-export async function createPet(
+// One in-flight pet save per user: repeated taps / triggers reuse the same
+// promise instead of writing duplicate pets.
+const inFlightCreates = new Map<string, Promise<string>>();
+
+export function createPet(
+  uid: string,
+  imageDataUrl: string,
+  name?: string,
+  extra?: { source?: PetSource; storagePath?: string },
+): Promise<string> {
+  const existing = inFlightCreates.get(uid);
+  if (existing) return existing;
+  const p = createPetOnce(uid, imageDataUrl, name, extra).finally(() => inFlightCreates.delete(uid));
+  inFlightCreates.set(uid, p);
+  return p;
+}
+
+async function createPetOnce(
   uid: string,
   imageDataUrl: string,
   name?: string,
