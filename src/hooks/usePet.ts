@@ -8,6 +8,7 @@ export function usePet(uid: string | null) {
   const [owner, setOwner] = useState<PetOwnerDoc | null>(null);
   const [items, setItems] = useState<PetItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [itemsLoading, setItemsLoading] = useState(true);
 
   // Re-subscribe when connection state changes (affects owner key)
   const connKey = connection?.status === "active" ? connection.id : "personal";
@@ -30,13 +31,18 @@ export function usePet(uid: string | null) {
   useEffect(() => {
     if (!owner?.id) {
       setItems([]);
+      setItemsLoading(!!uid);
       return;
     }
-    const unsub = subscribePetItems(owner.id, setItems);
+    setItemsLoading(true);
+    const unsub = subscribePetItems(owner.id, (list) => {
+      setItems(list);
+      setItemsLoading(false);
+    });
     return () => unsub();
-  }, [owner?.id]);
+  }, [owner?.id, uid]);
 
   const currentPet = items.find((i) => i.id === owner?.currentPetId) ?? null;
 
-  return { owner, items, currentPet, loading };
+  return { owner, items, currentPet, loading, itemsLoading };
 }

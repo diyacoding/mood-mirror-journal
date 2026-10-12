@@ -36,7 +36,7 @@ interface Props {
 }
 
 export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
-  const { owner, items, currentPet, loading } = usePet(user.uid);
+  const { owner, items, currentPet, loading, itemsLoading } = usePet(user.uid);
   const icons = useIcons();
   const [creator, setCreator] = useState(false);
   const [createMode, setCreateMode] = useState<"choice" | "draw" | "photo">("choice");
@@ -47,7 +47,6 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
   const [hatching, setHatching] = useState(false);
   // The Pets tab opens straight into the scrapbook, on the newest pet.
   const [scrapbook, setScrapbook] = useState(true);
-  const hatchHandledRef = useRef<string | null>(null);
 
   const openCreator = () => {
     setCreateMode("choice");
@@ -72,41 +71,42 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
   const noPetYet = !currentPet && !loading && !needsNew;
   const shared = owner?.ownerType === "connection";
 
-  // Auto-trigger egg hatch animation whenever a new pet is owed (first mood log,
-  // 100-pt milestones, etc.) and we haven't already handled this particular state.
+  // Single source of truth for the hatch flow: the persisted owner doc
+  // (pendingNewPet) + the persisted pet list. The egg animation plays only for
+  // the very first pet, only once per owner (remembered across refreshes), and
+  // only after BOTH the owner doc and pet list have finished loading.
+  // Later milestone pets skip the egg and open the creator once.
+  const handledKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!owner || loading) return;
-    console.info("[pet-flow] owner snapshot", {
-      id: owner.id,
-      points: owner.points,
-      pendingNewPet: owner.pendingNewPet,
-      currentPetId: owner.currentPetId,
-      milestone100: owner.milestone100,
-      items: items.length,
-    });
+    if (!owner || loading || itemsLoading) return;
     if (!owner.pendingNewPet) return;
     if (creator || hatching) return;
-    const hatchKey = `${owner.id}:${owner.milestone100 ?? 0}:${items.length}`;
-    if (hatchHandledRef.current === hatchKey) return;
-    hatchHandledRef.current = hatchKey;
-    console.info("[pet-flow] 🥚 Triggering hatch animation", { hatchKey });
-    setHatching(true);
-  }, [owner, loading, creator, hatching, items.length]);
+    const key = `${owner.id}:${owner.milestone100 ?? 0}:${items.length}`;
+    if (handledKeyRef.current === key) return;
+    handledKeyRef.current = key;
+    const seenKey = `mm.firstHatchSeen.${owner.id}`;
+    if (items.length === 0 && localStorage.getItem(seenKey) !== "1") {
+      localStorage.setItem(seenKey, "1");
+      console.info("[pet-flow] 🥚 First hatch", { key });
+      setHatching(true);
+    } else {
+      console.info("[pet-flow] New pet owed — opening creator", { key });
+      openCreator();
+    }
+  }, [owner, loading, itemsLoading, creator, hatching, items.length]);
 
-  useEffect(() => {
-    if (!hatchTrigger || creator || hatching) return;
-    console.info("[pet-flow] 🥚 Hatch trigger from mood save", hatchTrigger);
-    setHatching(true);
-  }, [hatchTrigger, creator, hatching]);
-
-
+  const savingRef = useRef(false);
   const handleCreate = async (dataUrl: string) => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     try {
       await createPet(user.uid, dataUrl);
       celebrate("pet-saved");
       toast.success(shared ? "Pet hatched — shared with your partner" : "Pet hatched!");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not save pet");
+    } finally {
+      savingRef.current = false;
     }
   };
 
