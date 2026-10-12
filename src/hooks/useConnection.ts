@@ -7,6 +7,7 @@ export function useConnection(uid: string | null) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setConnection(null); // never carry a previous account's connection over
     if (!uid) {
       setConnection(null);
       setLoading(false);
