@@ -189,7 +189,7 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
         />
         {currentPet && (currentPet.accessories?.length ?? 0) > 0 && (
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Tap an accessory to select it — drag to move, handles to resize & rotate
+            TAP AN ACCESSORY TO SELECT IT. DRAG TO MOVE, HANDLES TO RESIZE & ROTATE
           </p>
         )}
         <div className="text-center">
