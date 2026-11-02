@@ -33,7 +33,7 @@ const avg = (a: number[]) => a.reduce((x, y) => x + y, 0) / (a.length || 1);
 
 export function generateInsights(entries: MoodEntry[]): Insight[] {
   if (entries.length < 3) {
-    return [{ text: "Keep logging — patterns will appear as your data grows.", tone: "neutral" }];
+    return [{ text: "Keep logging! Patterns will appear as your data grows.", tone: "neutral" }];
   }
 
   const out: Insight[] = [];
