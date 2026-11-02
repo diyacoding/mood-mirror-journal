@@ -9,6 +9,7 @@ import {
   consumeSpinForDraw,
   createPet,
   createPetFromPhoto,
+  renamePet,
 
   removeAccessory,
   selectPet,
@@ -26,6 +27,8 @@ import { AccessoryWheel } from "@/components/pet/AccessoryWheel";
 
 import { EggHatch } from "@/components/pet/EggHatch";
 import { PetScrapbook } from "@/components/pet/PetScrapbook";
+import { PetNameDialog } from "@/components/pet/PetNameDialog";
+import { PetNameEditor } from "@/components/pet/PetNameEditor";
 import { cn } from "@/lib/utils";
 import { celebrate } from "@/lib/celebrate";
 
@@ -96,11 +99,18 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
   }, [owner, loading, itemsLoading, creator, hatching, items.length]);
 
   const savingRef = useRef(false);
+  const [namePrompt, setNamePrompt] = useState<((name: string | null) => void) | null>(null);
+  const askName = () =>
+    new Promise<string | null>((resolve) => setNamePrompt(() => resolve));
+  const handleRename = (petId: string) => (name: string) => renamePet(user.uid, petId, name);
   const handleCreate = async (dataUrl: string) => {
     if (savingRef.current) return;
+    const name = await askName();
+    setNamePrompt(null);
+    if (!name) throw new Error("cancelled");
     savingRef.current = true;
     try {
-      await createPet(user.uid, dataUrl);
+      await createPet(user.uid, dataUrl, name);
       celebrate("pet-saved");
       toast.success(shared ? "Pet hatched — shared with your partner" : "Pet hatched!");
     } catch (e: any) {
@@ -194,7 +204,9 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
         )}
         <div className="text-center">
           <p className="font-display text-lg tracking-wider">
-            {currentPet?.name ?? "Unhatched"}
+            {currentPet ? (
+              <PetNameEditor name={currentPet.name} onRename={handleRename(currentPet.id)} />
+            ) : "Unhatched"}
           </p>
           <p className="text-[11px] uppercase tracking-[0.25em] text-accent/80">
             Level {level} · {points} pts
@@ -347,6 +359,9 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
           onClose={closeCreator}
         />
       )}
+      {namePrompt && (
+        <PetNameDialog onSave={(n) => namePrompt(n)} onCancel={() => namePrompt(null)} />
+      )}
       {creator && createMode === "photo" && (
         <PetPhotoUpload onSave={handlePhotoCreate} onClose={closeCreator} />
       )}
@@ -390,6 +405,7 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
           onClose={() => setScrapbook(false)}
           closeLabel="Pet garden"
           onLogMood={onLogMood}
+          onRename={(id, name) => renamePet(user.uid, id, name)}
         />
       )}
       {hatching && (

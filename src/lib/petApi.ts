@@ -174,7 +174,7 @@ async function createPetOnce(
 
   const item: Omit<PetItem, "id"> & { ownerKey: string; members: string[] } = {
     imageDataUrl,
-    name: name ?? "Lumi",
+    ...(name?.trim() ? { name: name.trim() } : {}),
     accessories: [],
     createdAt: Date.now(),
     createdBy: uid,
@@ -250,6 +250,12 @@ export async function removeAccessory(
     const cur: AccessoryId[] = (s.data() as any).accessories ?? [];
     tx.update(itemR, { accessories: cur.filter((a) => a !== accessory) });
   });
+}
+
+/** Rename one pet; only the name field is written. */
+export async function renamePet(uid: string, petId: string, name: string): Promise<void> {
+  const info = await resolveOwnerKey(uid);
+  await updateDoc(itemRef(info.key, petId), { name: name.trim() });
 }
 
 /** Persist a dragged accessory position (percent coords) on the current pet. */

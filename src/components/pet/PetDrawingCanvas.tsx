@@ -130,6 +130,8 @@ export const PetDrawingCanvas = ({ title = "Create your pet", prompt, onSave, on
       const dataUrl = canvasRef.current!.toDataURL("image/png");
       await onSave(dataUrl);
       onClose();
+    } catch {
+      // Stay open; the parent already showed a message (or the user went back).
     } finally {
       setBusy(false);
     }

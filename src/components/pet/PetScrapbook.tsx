@@ -7,6 +7,8 @@ import type { AccessoryId, PetItem } from "@/lib/petTypes";
 import { useIcons } from "@/lib/iconSets";
 import { cn } from "@/lib/utils";
 import { playPageFlip } from "@/lib/audioEngine";
+import { PetNameEditor } from "@/components/pet/PetNameEditor";
+import { displayPetName } from "@/lib/petNames";
 
 interface Props {
   /** Pets in any order — the scrapbook sorts oldest → newest itself. */
@@ -19,6 +21,8 @@ interface Props {
   closeLabel?: string;
   /** Called by the empty-state button (send the user to mood logging). */
   onLogMood?: () => void;
+  /** Save a new name for a pet. */
+  onRename?: (petId: string, name: string) => Promise<void>;
 }
 
 type TurnDirection = "next" | "prev";
@@ -34,7 +38,7 @@ type Side = "left" | "right";
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
-export const PetScrapbook = ({ pets, points, customArt = {}, onClose, closeLabel, onLogMood }: Props) => {
+export const PetScrapbook = ({ pets, points, customArt = {}, onClose, closeLabel, onLogMood, onRename }: Props) => {
   const { prefs } = usePreferences();
   const icons = useIcons();
   const bookRef = useRef<HTMLDivElement>(null);
@@ -131,12 +135,12 @@ export const PetScrapbook = ({ pets, points, customArt = {}, onClose, closeLabel
                 <span className="book-tape -top-2 left-1/2 -translate-x-1/2 rotate-[-4deg]" />
                 <img
                   src={pet.imageDataUrl}
-                  alt={pet.source === "photo" ? (pet.name ? `Photo of ${pet.name}` : "Photo of your pet") : (pet.name ?? "Pet drawing")}
+                  alt={pet.source === "photo" ? `Photo of ${displayPetName(pet.name)}` : displayPetName(pet.name)}
                   className={cn("w-full h-full", pet.source === "photo" ? "object-cover" : "object-contain")}
                   draggable={false}
                 />
               </div>
-              <h3 className="font-display text-lg sm:text-xl tracking-wider break-words">{pet.name ?? "Unnamed friend"}</h3>
+              <h3 className="font-display text-lg sm:text-xl tracking-wider break-words">{onRename ? <PetNameEditor name={pet.name} onRename={(n) => onRename(pet.id, n)} /> : displayPetName(pet.name)}</h3>
               {(pet.accessories ?? []).length > 0 && (
                 <div className="flex flex-wrap justify-center gap-1.5 pt-1">
                   {(pet.accessories ?? []).map((accessory: AccessoryId) => {
