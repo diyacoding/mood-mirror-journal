@@ -3,6 +3,7 @@ import { Camera, Check, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { compressImageFile } from "@/lib/imageCompress";
+import { PET_NAME_MAX, validatePetName } from "@/lib/petNames";
 
 interface Props {
   title?: string;
@@ -34,10 +35,12 @@ export const PetPhotoUpload = ({ title = "Upload a photo of my pet", onSave, onC
 
   const save = async () => {
     if (!preview) return;
+    const nameErr = validatePetName(name);
+    if (nameErr) return setError(nameErr);
     setBusy(true);
     setError(null);
     try {
-      await onSave(preview, name.trim() || undefined);
+      await onSave(preview, name.trim());
       onClose();
     } catch (e: any) {
       setError(e?.message ?? "We couldn't upload your pet photo. Please try again.");
@@ -99,14 +102,14 @@ export const PetPhotoUpload = ({ title = "Upload a photo of my pet", onSave, onC
 
         <div className="space-y-1.5">
           <label htmlFor="pet-photo-name" className="text-[10px] uppercase tracking-[0.25em] text-accent/80">
-            Pet name (optional)
+            What would you like to name your new friend? 💗
           </label>
           <Input
             id="pet-photo-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Mochi"
-            maxLength={40}
+            maxLength={PET_NAME_MAX * 2}
             className="glass rounded-full h-11"
           />
         </div>
