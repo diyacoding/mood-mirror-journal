@@ -84,7 +84,7 @@ export function ReflectionSection({ value, onChange }: ReflectionSectionProps) {
           Want to reflect on your day?
         </p>
         <p className="text-xs text-muted-foreground">
-          You can answer any of these, or skip them — it's completely up to you.
+          You can answer any of these, or skip them. It's up to you.
         </p>
       </div>
 
