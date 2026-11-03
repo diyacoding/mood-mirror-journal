@@ -15,6 +15,7 @@ import {
   subscribeAchievements,
 } from "@/lib/achievementsApi";
 import { celebrate } from "@/lib/celebrate";
+import { captureAccount } from "@/lib/accountSession";
 
 interface Args {
   uid?: string | null;
@@ -22,30 +23,40 @@ interface Args {
   owner?: PetOwnerDoc | null;
   items?: PetItem[];
   hasConnection?: boolean;
+  ready?: boolean;
 }
 
-export function useAchievements({ uid, entries, owner, items = [], hasConnection = false }: Args) {
+export function useAchievements({ uid, entries, owner, items = [], hasConnection = false, ready = true }: Args) {
   const [earned, setEarned] = useState<EarnedMap>({});
   const [counters, setCounters] = useState<Record<string, number>>({});
   // Ids already announced in this session — belt and braces on top of persistence.
   const announced = useRef<Set<string>>(new Set());
   const claiming = useRef(false);
+  const [loadedUid, setLoadedUid] = useState<string | null>(null);
 
   useEffect(() => {
     announced.current = new Set();
+    setEarned({});
+    setCounters({});
+    setLoadedUid(null);
+    claiming.current = false;
     if (!uid) {
       setEarned({});
       setCounters({});
       return;
     }
     migrateLocalAchievements(uid).catch(() => {});
+    let active = true;
+    const current = captureAccount(uid);
     const unsub = subscribeAchievements(uid, (doc) => {
+      if (!active || !current()) return;
       setEarned(doc.earned);
       setCounters(doc.counters);
+      setLoadedUid(uid);
       // Anything already persisted must never be announced again.
       Object.keys(doc.earned).forEach((id) => announced.current.add(id));
     });
-    return () => unsub();
+    return () => { active = false; unsub(); };
   }, [uid]);
 
   const stats: AchievementStats = useMemo(
@@ -66,7 +77,8 @@ export function useAchievements({ uid, entries, owner, items = [], hasConnection
 
   // Persist newly unlocked badges once, then celebrate exactly those.
   useEffect(() => {
-    if (!uid || claiming.current) return;
+    if (!uid || !ready || loadedUid !== uid || claiming.current) return;
+    const current = captureAccount(uid);
     const candidates = achievements
       .filter((a) => a.unlocked && earned[a.id] == null && !announced.current.has(a.id))
       .map((a) => a.id);
@@ -75,6 +87,7 @@ export function useAchievements({ uid, entries, owner, items = [], hasConnection
     candidates.forEach((id) => announced.current.add(id));
     claimAchievements(uid, candidates)
       .then((fresh) => {
+        if (!current()) return;
         fresh.forEach((id) => {
           const a = achievements.find((x) => x.id === id);
           if (!a) return;
@@ -91,9 +104,9 @@ export function useAchievements({ uid, entries, owner, items = [], hasConnection
         }
       })
       .finally(() => {
-        claiming.current = false;
+        if (current()) claiming.current = false;
       });
-  }, [achievements, earned, uid]);
+  }, [achievements, earned, uid, ready, loadedUid]);
 
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
 

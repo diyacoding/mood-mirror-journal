@@ -52,9 +52,13 @@ export async function resolveOwnerKey(uid: string): Promise<{
   type: "user" | "connection";
   ownerId: string;
   members: string[];
+  assertCurrent: () => void;
 }> {
   assertAccount(uid);
+  const current = captureAccount(uid);
+  const assertCurrent = () => { if (!current()) throw new Error("Your account changed. Please try again."); };
   const conn = await findMyConnection(uid);
+  assertCurrent();
   if (conn && conn.status === "active" && conn.userB) {
     if (conn.userA !== uid && conn.userB !== uid) throw new Error("Pet membership could not be verified.");
     return {
@@ -62,23 +66,17 @@ export async function resolveOwnerKey(uid: string): Promise<{
       type: "connection",
       ownerId: conn.id,
       members: [conn.userA, conn.userB],
+      assertCurrent,
     };
   }
-  return { key: personalKey(uid), type: "user", ownerId: uid, members: [uid] };
+  return { key: personalKey(uid), type: "user", ownerId: uid, members: [uid], assertCurrent };
 }
 
 export type ResolvedPetOwner = Awaited<ReturnType<typeof resolveOwnerKey>>;
 
 export async function preparePetOwnerDoc(info: ResolvedPetOwner): Promise<void> {
-  await setDoc(
-    ownerRef(info.key),
-    {
-      ownerType: info.type,
-      ownerId: info.ownerId,
-      members: info.members,
-    },
-    { merge: true },
-  );
+  info.assertCurrent();
+  await ensureOwnerDoc(info);
 }
 
 async function ensureOwnerDoc(info: ResolvedPetOwner): Promise<PetOwnerDoc> {
@@ -96,7 +94,9 @@ async function ensureOwnerDoc(info: ResolvedPetOwner): Promise<PetOwnerDoc> {
     milestone100: 0,
   };
   return runTransaction(db, async (tx) => {
+    info.assertCurrent();
     const snap = await tx.get(ref);
+    info.assertCurrent();
     if (snap.exists()) {
       const data = snap.data() as PetOwnerDoc;
       if (data.ownerType !== info.type || data.ownerId !== info.ownerId ||
@@ -185,7 +185,7 @@ async function createPetOnce(
   const info = await resolveOwnerKey(uid);
   console.info("[pet-save] resolved owner", info);
   await ensureOwnerDoc(info);
-  assertAccount(uid);
+  info.assertCurrent();
   console.info("[pet-save] owner doc ensured");
 
   const item: Omit<PetItem, "id"> & { ownerKey: string; members: string[] } = {
@@ -219,6 +219,7 @@ async function createPetOnce(
   }
 
   try {
+    info.assertCurrent();
     await updateDoc(ownerRef(info.key), {
       currentPetId: ref.id,
       pendingNewPet: false,
@@ -236,6 +237,7 @@ export async function applyAccessory(
 ): Promise<void> {
   const info = await resolveOwnerKey(uid);
   const ownerSnap = await getDoc(ownerRef(info.key));
+  info.assertCurrent();
   if (!ownerSnap.exists()) return;
   const data = ownerSnap.data() as PetOwnerDoc;
   if (!data.currentPetId) return;
@@ -243,6 +245,7 @@ export async function applyAccessory(
   const itemR = itemRef(info.key, data.currentPetId);
   await runTransaction(db, async (tx) => {
     const s = await tx.get(itemR);
+    info.assertCurrent();
     if (!s.exists()) return;
     const cur = (s.data() as any).accessories ?? [];
     const next = cur.includes(accessory) ? cur : [...cur, accessory];
@@ -256,12 +259,14 @@ export async function removeAccessory(
 ): Promise<void> {
   const info = await resolveOwnerKey(uid);
   const ownerSnap = await getDoc(ownerRef(info.key));
+  info.assertCurrent();
   if (!ownerSnap.exists()) return;
   const data = ownerSnap.data() as PetOwnerDoc;
   if (!data.currentPetId) return;
   const itemR = itemRef(info.key, data.currentPetId);
   await runTransaction(db, async (tx) => {
     const s = await tx.get(itemR);
+    info.assertCurrent();
     if (!s.exists()) return;
     const cur: AccessoryId[] = (s.data() as any).accessories ?? [];
     tx.update(itemR, { accessories: cur.filter((a) => a !== accessory) });
@@ -282,6 +287,7 @@ export async function setAccessoryPosition(
 ): Promise<void> {
   const info = await resolveOwnerKey(uid);
   const ownerSnap = await getDoc(ownerRef(info.key));
+  info.assertCurrent();
   if (!ownerSnap.exists()) return;
   const data = ownerSnap.data() as PetOwnerDoc;
   if (!data.currentPetId) return;
@@ -309,6 +315,7 @@ export async function awardResolvedPointsInTransaction(
 ): Promise<PetAwardResult> {
   const ref = ownerRef(info.key);
   const snap = await tx.get(ref);
+  info.assertCurrent();
   let data: PetOwnerDoc;
   if (!snap.exists()) {
     data = {
@@ -389,6 +396,7 @@ export async function consumeSpin(uid: string): Promise<AccessoryKey | null> {
   let awarded: AccessoryKey | null = null;
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
+    info.assertCurrent();
     if (!snap.exists()) return;
     const data = snap.data() as PetOwnerDoc;
     const spins = (data.spinsByUser ?? {})[uid] ?? 0;
@@ -418,6 +426,7 @@ export async function consumeSpinForDraw(uid: string): Promise<AccessoryKey | nu
   let picked: AccessoryKey | null = null;
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
+    info.assertCurrent();
     if (!snap.exists()) return;
     const data = snap.data() as PetOwnerDoc;
     const spins = (data.spinsByUser ?? {})[uid] ?? 0;
@@ -455,11 +464,12 @@ export async function addCustomAccessory(
   if (!imageDataUrl?.startsWith("data:image/")) throw new Error("Invalid drawing");
   const info = await resolveOwnerKey(uid);
   await ensureOwnerDoc(info);
-  assertAccount(uid);
+  info.assertCurrent();
   const ref = ownerRef(info.key);
   const id = `custom:${Date.now()}`;
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
+    info.assertCurrent();
     const data = (snap.exists() ? snap.data() : {}) as PetOwnerDoc;
     const inv: AccessoryId[] = (data.inventoryByUser ?? {})[uid] ?? [];
     const customs: CustomAccessory[] = (data.customAccessoriesByUser ?? {})[uid] ?? [];
@@ -495,6 +505,7 @@ export async function createPetFromPhoto(
   name?: string,
 ): Promise<string> {
   assertAccount(uid);
+  const current = captureAccount(uid);
   if (!compressedDataUrl?.startsWith("data:image/")) throw new Error("Invalid photo");
 
   const blob = dataUrlToBlob(compressedDataUrl);
@@ -515,6 +526,7 @@ export async function createPetFromPhoto(
   }
 
   try {
+    if (!current()) throw new Error("Your account changed. Please try again.");
     return await createPet(uid, imageRef, name, { source: "photo", storagePath });
   } catch (err) {
     // Never leave an orphaned upload behind if the pet record couldn't be created.

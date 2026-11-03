@@ -35,7 +35,7 @@ interface Props {
 
 export const ConnectionsScreen = ({ user }: Props) => {
   const icons = useIcons();
-  const { connection, loading } = useConnection(user.uid);
+  const { connection, loading, error } = useConnection(user.uid);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState("");
@@ -46,24 +46,28 @@ export const ConnectionsScreen = ({ user }: Props) => {
   const feedRef = useRef<HTMLDivElement>(null);
 
   // Always resolve "You" from the live auth session, never from cached UI state.
-  const selfId = auth.currentUser?.uid ?? user.uid;
+  const selfId = user.uid;
   const active = connection?.status === "active";
   const cid = connection?.id;
 
   // Live subscriptions only when active
   useEffect(() => {
+    let activeListener = true;
+    setMessages([]);
+    setMoods([]);
     if (!cid || !active) {
       setMessages([]);
       setMoods([]);
       return;
     }
-    const u1 = subscribeMessages(cid, setMessages);
-    const u2 = subscribeSharedMoods(cid, setMoods);
+    const u1 = subscribeMessages(cid, (list) => { if (activeListener && auth.currentUser?.uid === user.uid) setMessages(list); });
+    const u2 = subscribeSharedMoods(cid, (list) => { if (activeListener && auth.currentUser?.uid === user.uid) setMoods(list); });
     return () => {
+      activeListener = false;
       u1();
       u2();
     };
-  }, [cid, active]);
+  }, [cid, active, user.uid]);
 
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
@@ -159,7 +163,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
         </button>
       </header>
 
-      {loading ? (
+      {error ? <p className="text-sm text-muted-foreground">{error}</p> : loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : !connection ? (
         // No connection — show invite UI

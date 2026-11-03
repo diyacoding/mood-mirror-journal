@@ -37,13 +37,14 @@ const AccountExperience = ({ user }: { user: User }) => {
   const [screen, setScreen] = useState<Screen>("home");
   const [prefilledMood, setPrefilledMood] = useState<MoodKey | undefined>();
   const [petHatchTrigger, setPetHatchTrigger] = useState(0);
-  const { entries, loading } = useMoodEntries(user?.uid);
-  const { owner: petOwner, items: pets, currentPet } = usePet(user?.uid ?? null);
+  const { entries, loading, error: moodError } = useMoodEntries(user?.uid);
+  const { owner: petOwner, items: pets, currentPet, loading: petLoading, itemsLoading, error: petError } = usePet(user?.uid ?? null);
   const { achievements } = useAchievements({
     uid: user?.uid,
     entries,
     owner: petOwner,
     items: pets,
+    ready: !loading && !moodError && !petLoading && !itemsLoading && !petError,
   });
 
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem(onboardKey(user.uid)) === "1");
