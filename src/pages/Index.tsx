@@ -20,14 +20,23 @@ import { useAchievements } from "@/hooks/useAchievements";
 import { celebrate } from "@/lib/celebrate";
 import type { MoodKey } from "@/lib/moodTypes";
 import type { MoodSaveResult } from "@/lib/moodApi";
+import type { User } from "firebase/auth";
+import { captureAccount } from "@/lib/accountSession";
 
 const onboardKey = (uid: string) => `mm.onboarded.${uid}`;
 
 const Index = () => {
+  const { user, loading, revision } = useAuth();
+  if (loading) return <main className="app-shell min-h-screen flex items-center justify-center"><p className="text-sm text-muted-foreground">Loading…</p></main>;
+  if (!user) return <AuthScreen />;
+  return <AccountExperience key={`${user.uid}:${revision}`} user={user} />;
+};
+
+const AccountExperience = ({ user }: { user: User }) => {
+  const isCurrent = captureAccount(user.uid);
   const [screen, setScreen] = useState<Screen>("home");
   const [prefilledMood, setPrefilledMood] = useState<MoodKey | undefined>();
   const [petHatchTrigger, setPetHatchTrigger] = useState(0);
-  const { user, loading: authLoading } = useAuth();
   const { entries, loading } = useMoodEntries(user?.uid);
   const { owner: petOwner, items: pets, currentPet } = usePet(user?.uid ?? null);
   const { achievements } = useAchievements({
@@ -37,11 +46,7 @@ const Index = () => {
     items: pets,
   });
 
-  const [onboarded, setOnboarded] = useState(false);
-  useEffect(() => {
-    if (!user) return;
-    setOnboarded(localStorage.getItem(onboardKey(user.uid)) === "1");
-  }, [user]);
+  const [onboarded, setOnboarded] = useState(() => localStorage.getItem(onboardKey(user.uid)) === "1");
 
   useEffect(() => {
     document.title = "Mood Mirror — Track moods, behaviors, and patterns";
@@ -56,11 +61,13 @@ const Index = () => {
   }, []);
 
   const finishOnboarding = () => {
+    if (!isCurrent()) return;
     if (user) localStorage.setItem(onboardKey(user.uid), "1");
     setOnboarded(true);
   };
 
   const finishMoodSave = (result: MoodSaveResult) => {
+    if (!isCurrent()) return;
     setPrefilledMood(undefined);
     if (entries.length === 0) celebrate("first-mood");
     if (result.petAward.pendingNewPet) {
@@ -70,14 +77,6 @@ const Index = () => {
     setScreen(result.petAward.pendingNewPet ? "pet" : "home");
   };
 
-  if (authLoading) {
-    return (
-      <main className="app-shell min-h-screen flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      </main>
-    );
-  }
-  if (!user) return <AuthScreen />;
   if (!onboarded) return <Onboarding onDone={finishOnboarding} />;
 
   return (

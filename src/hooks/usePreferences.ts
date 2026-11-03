@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { applyThemeHues } from "@/lib/themeHue";
 import { setAudioSettings } from "@/lib/audioEngine";
+import { auth } from "@/lib/firebase";
+import { captureAccount } from "@/lib/accountSession";
 
 export type StickerSet = "classic" | "pastel" | "cosmic" | "minimal";
 
 export interface Preferences {
+  theme: "dark" | "light";
   largerText: boolean;
   reduceMotion: boolean;
   highContrast: boolean;
@@ -25,7 +28,7 @@ export interface Preferences {
   sfxOn: boolean;
 }
 
-const KEY = "mm.preferences";
+export const preferencesKey = (uid: string) => `mm.preferences.${uid}`;
 
 export const STICKER_SETS: { id: StickerSet; label: string; preview: string[] }[] = [
   { id: "classic", label: "Classic", preview: ["😊", "😌", "😐", "😰", "😣", "😔"] },
@@ -35,6 +38,7 @@ export const STICKER_SETS: { id: StickerSet; label: string; preview: string[] }[
 ];
 
 const DEFAULTS: Preferences = {
+  theme: "dark",
   largerText: false,
   reduceMotion: false,
   highContrast: false,
@@ -49,22 +53,20 @@ const DEFAULTS: Preferences = {
   sfxOn: true,
 };
 
-function read(): Preferences {
+function read(uid: string | null): Preferences {
   if (typeof window === "undefined") return DEFAULTS;
+  if (!uid) return { ...DEFAULTS };
   try {
-    const raw = window.localStorage.getItem(KEY);
-    const legacy: Partial<Preferences> = {
-      reminders: window.localStorage.getItem("mm.reminders") === "1",
-      reminderTime: window.localStorage.getItem("mm.reminderTime") ?? undefined,
-    };
+    const raw = window.localStorage.getItem(preferencesKey(uid));
     const parsed = raw ? (JSON.parse(raw) as Partial<Preferences>) : {};
-    return { ...DEFAULTS, ...legacy, ...parsed } as Preferences;
+    return { ...DEFAULTS, ...parsed } as Preferences;
   } catch {
     return DEFAULTS;
   }
 }
 
-let cache: Preferences = read();
+let activeUid: string | null = null;
+let cache: Preferences = read(null);
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -74,6 +76,8 @@ function subscribe(cb: () => void) {
 
 export function applyPreferences(p: Preferences) {
   const root = document.documentElement;
+  root.classList.toggle("light", p.theme === "light");
+  root.style.colorScheme = p.theme;
   root.classList.toggle("pref-large-text", p.largerText);
   root.classList.toggle("pref-reduce-motion", p.reduceMotion);
   root.classList.toggle("pref-high-contrast", p.highContrast);
@@ -85,10 +89,18 @@ export function getInitialPreferences(): Preferences {
   return cache;
 }
 
-export function setPreferences(patch: Partial<Preferences>) {
+export function activateAccountPreferences(uid: string | null) {
+  activeUid = uid;
+  cache = read(uid);
+  applyPreferences(cache);
+  listeners.forEach((l) => l());
+}
+
+export function setPreferences(patch: Partial<Preferences>, expectedUid: string | null = activeUid) {
+  if (!expectedUid || expectedUid !== activeUid || auth.currentUser?.uid !== expectedUid) return;
   cache = { ...cache, ...patch };
   try {
-    localStorage.setItem(KEY, JSON.stringify(cache));
+    localStorage.setItem(preferencesKey(expectedUid), JSON.stringify(cache));
   } catch {
     /* ignore */
   }
@@ -97,13 +109,17 @@ export function setPreferences(patch: Partial<Preferences>) {
 }
 
 export function usePreferences() {
+  const uid = activeUid;
+  const isCurrent = uid ? captureAccount(uid) : () => false;
   const prefs = useSyncExternalStore(subscribe, () => cache, () => cache);
 
   useEffect(() => {
     applyPreferences(prefs);
   }, [prefs]);
 
-  const update = useCallback((patch: Partial<Preferences>) => setPreferences(patch), []);
+  const update = useCallback((patch: Partial<Preferences>) => {
+    if (isCurrent()) setPreferences(patch, uid);
+  }, [uid]);
 
   return { prefs, update };
 }

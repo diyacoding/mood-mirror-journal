@@ -30,6 +30,7 @@ import {
   type FaceLandmarkerResult,
 } from "@mediapipe/tasks-vision";
 import { MOODS, type MoodKey } from "./moodTypes";
+import { auth } from "./firebase";
 
 export interface MoodProbability {
   mood: MoodKey;
@@ -99,14 +100,18 @@ const emptyCalibration = (): Calibration =>
   MOODS.reduce((a, m) => { a[m.key] = 0; return a; }, {} as Calibration);
 
 const loadCalibration = (): Calibration => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return emptyCalibration();
   try {
-    const raw = localStorage.getItem(CALIBRATION_KEY);
+    const raw = localStorage.getItem(`${CALIBRATION_KEY}.${uid}`);
     if (!raw) return emptyCalibration();
     return { ...emptyCalibration(), ...JSON.parse(raw) };
   } catch { return emptyCalibration(); }
 };
 const saveCalibration = (c: Calibration) => {
-  try { localStorage.setItem(CALIBRATION_KEY, JSON.stringify(c)); } catch {}
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+  try { localStorage.setItem(`${CALIBRATION_KEY}.${uid}`, JSON.stringify(c)); } catch {}
 };
 
 export const recordFeedback = (suggested: MoodKey, chosen: MoodKey) => {
