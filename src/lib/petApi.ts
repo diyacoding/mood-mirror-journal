@@ -23,6 +23,7 @@ import { findMyConnection } from "./connectionsApi";
 
 import type { AccessoryId, AccessoryKey, CustomAccessory, PetItem, PetOwnerDoc, PetSource } from "./petTypes";
 import { ACCESSORIES, WHEEL_ACCESSORY_KEYS } from "./petTypes";
+import { assertAccount, captureAccount } from "./accountSession";
 
 
 const COL = "pets";
@@ -52,8 +53,10 @@ export async function resolveOwnerKey(uid: string): Promise<{
   ownerId: string;
   members: string[];
 }> {
-  const conn = await findMyConnection(uid).catch(() => null);
+  assertAccount(uid);
+  const conn = await findMyConnection(uid);
   if (conn && conn.status === "active" && conn.userB) {
+    if (conn.userA !== uid && conn.userB !== uid) throw new Error("Pet membership could not be verified.");
     return {
       key: sharedKey(conn.id),
       type: "connection",
@@ -78,11 +81,8 @@ export async function preparePetOwnerDoc(info: ResolvedPetOwner): Promise<void> 
   );
 }
 
-async function ensureOwnerDoc(uid: string): Promise<PetOwnerDoc> {
-  const info = await resolveOwnerKey(uid);
+async function ensureOwnerDoc(info: ResolvedPetOwner): Promise<PetOwnerDoc> {
   const ref = ownerRef(info.key);
-  await preparePetOwnerDoc(info);
-  const snap = await getDoc(ref);
   const init: Omit<PetOwnerDoc, "id"> = {
     ownerType: info.type,
     ownerId: info.ownerId,
@@ -95,27 +95,41 @@ async function ensureOwnerDoc(uid: string): Promise<PetOwnerDoc> {
     milestone50: 0,
     milestone100: 0,
   };
-  if (snap.exists()) return { id: info.key, ...init, ...(snap.data() as any) } as PetOwnerDoc;
-  await setDoc(ref, { ...init, serverCreatedAt: serverTimestamp() }, { merge: true });
-  return { id: info.key, ...init };
+  return runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists()) {
+      const data = snap.data() as PetOwnerDoc;
+      if (data.ownerType !== info.type || data.ownerId !== info.ownerId ||
+          !Array.isArray(data.members) || data.members.length !== info.members.length ||
+          !info.members.every((uid) => data.members.includes(uid))) {
+        throw new Error("Pet ownership could not be verified. No saved data was changed.");
+      }
+      return { ...data, id: info.key };
+    }
+    tx.set(ref, { ...init, serverCreatedAt: serverTimestamp() });
+    return { id: info.key, ...init };
+  });
 }
 
 export function subscribeOwnerForUser(
   uid: string,
   cb: (doc: PetOwnerDoc | null) => void,
+  onError?: (error: Error) => void,
 ): () => void {
   let unsub = () => {};
   let cancelled = false;
+  const current = captureAccount(uid);
   (async () => {
     const info = await resolveOwnerKey(uid);
     if (cancelled) return;
-    await ensureOwnerDoc(uid).catch(() => null);
-    if (cancelled) return;
+    await ensureOwnerDoc(info);
+    if (cancelled || !current()) return;
     unsub = onSnapshot(ownerRef(info.key), (snap) => {
+      if (cancelled || !current()) return;
       if (!snap.exists()) cb(null);
       else cb({ id: info.key, ...(snap.data() as any) } as PetOwnerDoc);
-    });
-  })();
+    }, (err) => { if (!cancelled && current()) onError?.(err); });
+  })().catch((err) => { if (!cancelled && current()) onError?.(err); });
   return () => {
     cancelled = true;
     unsub();
@@ -125,12 +139,13 @@ export function subscribeOwnerForUser(
 export function subscribePetItems(
   ownerKey: string,
   cb: (items: PetItem[]) => void,
+  onError?: (error: Error) => void,
 ): () => void {
   return onSnapshot(itemsCol(ownerKey), (snap) => {
     const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as PetItem[];
     list.sort((a, b) => b.createdAt - a.createdAt);
     cb(list);
-  });
+  }, onError);
 }
 
 // ─── Mutations ────────────────────────────────────────────────
@@ -164,12 +179,13 @@ async function createPetOnce(
     authUid: auth.currentUser?.uid,
     nameSize: imageDataUrl?.length,
   });
-  if (!auth.currentUser?.uid) {
+  if (auth.currentUser?.uid !== uid) {
     throw new Error("You must be signed in to save a pet.");
   }
   const info = await resolveOwnerKey(uid);
   console.info("[pet-save] resolved owner", info);
-  await ensureOwnerDoc(uid);
+  await ensureOwnerDoc(info);
+  assertAccount(uid);
   console.info("[pet-save] owner doc ensured");
 
   const item: Omit<PetItem, "id"> & { ownerKey: string; members: string[] } = {
@@ -438,7 +454,8 @@ export async function addCustomAccessory(
 ): Promise<string> {
   if (!imageDataUrl?.startsWith("data:image/")) throw new Error("Invalid drawing");
   const info = await resolveOwnerKey(uid);
-  await ensureOwnerDoc(uid);
+  await ensureOwnerDoc(info);
+  assertAccount(uid);
   const ref = ownerRef(info.key);
   const id = `custom:${Date.now()}`;
   await runTransaction(db, async (tx) => {
@@ -477,7 +494,7 @@ export async function createPetFromPhoto(
   compressedDataUrl: string,
   name?: string,
 ): Promise<string> {
-  if (!auth.currentUser?.uid) throw new Error("You must be signed in to add a pet.");
+  assertAccount(uid);
   if (!compressedDataUrl?.startsWith("data:image/")) throw new Error("Invalid photo");
 
   const blob = dataUrlToBlob(compressedDataUrl);
