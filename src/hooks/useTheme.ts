@@ -1,13 +1,9 @@
-import { useEffect, useState } from "react";
+import { getInitialPreferences, usePreferences } from "./usePreferences";
 
 export type Theme = "dark" | "light";
 
-const KEY = "mm.theme";
-
 export function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  const stored = window.localStorage.getItem(KEY);
-  return stored === "light" ? "light" : "dark";
+  return getInitialPreferences().theme;
 }
 
 export function applyTheme(theme: Theme) {
@@ -17,15 +13,10 @@ export function applyTheme(theme: Theme) {
 }
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(() => getInitialTheme());
-
-  useEffect(() => {
-    applyTheme(theme);
-    try { localStorage.setItem(KEY, theme); } catch { /* ignore */ }
-  }, [theme]);
-
-  const setTheme = (t: Theme) => setThemeState(t);
-  const toggle = () => setThemeState((t) => (t === "dark" ? "light" : "dark"));
+  const { prefs, update } = usePreferences();
+  const theme = prefs.theme;
+  const setTheme = (t: Theme) => update({ theme: t });
+  const toggle = () => setTheme(theme === "dark" ? "light" : "dark");
 
   return { theme, setTheme, toggle };
 }

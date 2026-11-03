@@ -39,7 +39,7 @@ interface Props {
 }
 
 export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
-  const { owner, items, currentPet, loading, itemsLoading } = usePet(user.uid);
+  const { owner, items, currentPet, loading, itemsLoading, error } = usePet(user.uid);
   const icons = useIcons();
   const [creator, setCreator] = useState(false);
   const [createMode, setCreateMode] = useState<"choice" | "draw" | "photo">("choice");
@@ -176,6 +176,9 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
       /* position is already reflected locally */
     }
   };
+
+  if (error) return <div className="px-5 pt-10 pb-32"><p className="text-sm text-muted-foreground">{error}</p></div>;
+  if (loading || itemsLoading) return <div className="px-5 pt-10 pb-32"><p className="text-sm text-muted-foreground">Loading…</p></div>;
 
   return (
     <div className="px-5 pt-10 pb-32 space-y-6 animate-fade-in relative">

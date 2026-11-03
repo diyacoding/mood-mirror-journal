@@ -163,13 +163,11 @@ export const SettingsScreen = ({ entries }: Props) => {
       }
     }
     update({ reminders: val });
-    localStorage.setItem("mm.reminders", val ? "1" : "0");
     toast.success(val ? "Reminders on" : "Reminders off");
   };
 
   const setTime = (t: string) => {
     update({ reminderTime: t });
-    localStorage.setItem("mm.reminderTime", t);
   };
 
   const exportHistory = () => {

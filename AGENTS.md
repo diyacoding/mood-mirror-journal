@@ -1,0 +1,5 @@
+# Account boundaries
+- Keep all signed-in hooks, navigation and drafts inside the UID-and-session-keyed account experience; late work must validate its captured session before further writes or visible effects.
+- Keep personal appearance, stickers, audio, reminders and calibration in UID-scoped local storage; legacy unowned browser keys stay intact and unassigned because their owner cannot be inferred.
+- Resolve pet ownership once per operation from validated connection membership, propagate lookup failures, and authorize cached data against the current UID and owner scope; Firebase rules remain the server-side security boundary.
+- Do not enable a second backend: this app already uses Firebase Authentication, Firestore and Storage, and account-isolation changes must preserve those services.

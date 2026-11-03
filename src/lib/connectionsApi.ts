@@ -26,6 +26,7 @@ import type {
   ConnectionReaction,
 } from "./connectionsTypes";
 import type { MoodKey } from "./moodTypes";
+import { assertAccount, captureAccount } from "./accountSession";
 
 const CONNECTIONS = "connections";
 
@@ -107,14 +108,18 @@ export async function disconnect(connectionId: string): Promise<void> {
 }
 
 export async function findMyConnection(uid: string): Promise<Connection | null> {
+  assertAccount(uid);
+  const current = captureAccount(uid);
   const col = collection(db, CONNECTIONS);
   const [aSnap, bSnap] = await Promise.all([
     getDocs(query(col, where("userA", "==", uid))),
     getDocs(query(col, where("userB", "==", uid))),
   ]);
   const docs = [...aSnap.docs, ...bSnap.docs];
+  if (!current()) throw new Error("Your account changed. Please try again.");
   // Prefer active, then pending, ignore ended/blocked
   const mapped = docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Connection[];
+  if (mapped.filter((c) => c.status === "active").length > 1) throw new Error("Multiple active connections found. Pet ownership could not be verified.");
   return (
     mapped.find((c) => c.status === "active") ??
     mapped.find((c) => c.status === "pending") ??
@@ -125,29 +130,42 @@ export async function findMyConnection(uid: string): Promise<Connection | null> 
 export function subscribeMyConnection(
   uid: string,
   cb: (c: Connection | null) => void,
+  onError?: (error: Error) => void,
 ): () => void {
   // Listen to both userA and userB queries; merge results.
   const col = collection(db, CONNECTIONS);
   let aList: Connection[] = [];
   let bList: Connection[] = [];
+  let aReady = false;
+  let bReady = false;
+  let active = true;
+  const current = captureAccount(uid);
 
   const emit = () => {
+    if (!active || !current() || !aReady || !bReady) return;
     const all = [...aList, ...bList];
+    if (all.filter((c) => c.status === "active").length > 1) {
+      onError?.(new Error("Multiple active connections found. Pet ownership could not be verified."));
+      return;
+    }
     const active = all.find((c) => c.status === "active");
     const pending = all.find((c) => c.status === "pending");
     cb(active ?? pending ?? null);
   };
 
   const unsubA = onSnapshot(query(col, where("userA", "==", uid)), (snap) => {
+    aReady = true;
     aList = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Connection[];
     emit();
-  });
+  }, (err) => { if (active && current()) onError?.(err); });
   const unsubB = onSnapshot(query(col, where("userB", "==", uid)), (snap) => {
+    bReady = true;
     bList = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Connection[];
     emit();
-  });
+  }, (err) => { if (active && current()) onError?.(err); });
 
   return () => {
+    active = false;
     unsubA();
     unsubB();
   };

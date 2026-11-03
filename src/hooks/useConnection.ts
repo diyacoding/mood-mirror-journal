@@ -1,25 +1,24 @@
 import { useEffect, useState } from "react";
 import { subscribeMyConnection } from "@/lib/connectionsApi";
 import type { Connection } from "@/lib/connectionsTypes";
+import { captureAccount } from "@/lib/accountSession";
 
 export function useConnection(uid: string | null) {
-  const [connection, setConnection] = useState<Connection | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<{ uid: string; connection: Connection | null; error: string | null } | null>(null);
 
   useEffect(() => {
-    setConnection(null); // never carry a previous account's connection over
-    if (!uid) {
-      setConnection(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+    setState(null);
+    if (!uid) return;
+    let active = true;
+    const current = captureAccount(uid);
     const unsub = subscribeMyConnection(uid, (c) => {
-      setConnection(c);
-      setLoading(false);
+      if (active && current()) setState({ uid, connection: c, error: null });
+    }, (err) => {
+      if (active && current()) setState({ uid, connection: null, error: err.message });
     });
-    return () => unsub();
+    return () => { active = false; unsub(); };
   }, [uid]);
 
-  return { connection, loading };
+  const fresh = state?.uid === uid ? state : null;
+  return { connection: fresh?.connection ?? null, loading: !!uid && !fresh, error: fresh?.error ?? null };
 }

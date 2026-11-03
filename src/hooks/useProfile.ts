@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { User } from "firebase/auth";
+import { captureAccount } from "@/lib/accountSession";
 
 export interface Profile {
   displayName: string;
@@ -30,6 +31,7 @@ function read(uid: string, user?: User | null): Profile {
 
 export function useProfile(user: User | null) {
   const uid = user?.uid ?? null;
+  const current = uid ? captureAccount(uid) : () => false;
   const [profile, setProfile] = useState<Profile>(() => (uid ? read(uid, user) : read("anon", user)));
 
   useEffect(() => {
@@ -38,9 +40,9 @@ export function useProfile(user: User | null) {
 
   const update = useCallback(
     (patch: Partial<Profile>) => {
-      if (!uid) return;
+      if (!uid || !current()) return;
       setProfile((prev) => {
-        const next = { ...prev, ...patch };
+        const next = { ...read(uid, user), ...patch };
         try {
           localStorage.setItem(key(uid), JSON.stringify(next));
         } catch {
