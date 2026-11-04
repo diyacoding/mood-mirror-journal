@@ -148,9 +148,9 @@ export function subscribeMyConnection(
       onError?.(new Error("Multiple active connections found. Pet ownership could not be verified."));
       return;
     }
-    const active = all.find((c) => c.status === "active");
+    const activeConnection = all.find((c) => c.status === "active");
     const pending = all.find((c) => c.status === "pending");
-    cb(active ?? pending ?? null);
+    cb(activeConnection ?? pending ?? null);
   };
 
   const unsubA = onSnapshot(query(col, where("userA", "==", uid)), (snap) => {
