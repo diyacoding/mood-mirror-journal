@@ -46,6 +46,8 @@ const generateInviteCode = () => {
 // ─── Connection lifecycle ──────────────────────────────────────────────
 
 export async function createInvite(uid: string): Promise<Connection> {
+  assertAccount(uid);
+  const current = captureAccount(uid);
   // Prevent multiple active/pending invites by this user
   const existing = await findMyConnection(uid);
   if (existing && (existing.status === "active" || existing.status === "pending")) {
@@ -63,10 +65,13 @@ export async function createInvite(uid: string): Promise<Connection> {
     serverCreatedAt: serverTimestamp(),
   };
   const ref = await addDoc(collection(db, CONNECTIONS), payload);
+  if (!current()) throw new Error("Your account changed. Please try again.");
   return { id: ref.id, ...payload };
 }
 
 export async function acceptInvite(uid: string, code: string): Promise<Connection> {
+  assertAccount(uid);
+  const current = captureAccount(uid);
   const trimmed = code.trim().toUpperCase();
   // Reject if user already has an active connection
   const mine = await findMyConnection(uid);
@@ -81,6 +86,7 @@ export async function acceptInvite(uid: string, code: string): Promise<Connectio
     limit(1),
   );
   const snap = await getDocs(q);
+  if (!current()) throw new Error("Your account changed. Please try again.");
   if (snap.empty) throw new Error("Invalid or expired invite code");
   const d = snap.docs[0];
   const data = d.data() as any;
@@ -179,6 +185,7 @@ export async function sendTextMessage(
   text: string,
 ): Promise<void> {
   const content = text.trim();
+  assertAccount(uid);
   if (!content) return;
   await addDoc(messagesRef(connectionId), {
     senderId: uid,
@@ -218,6 +225,8 @@ export async function sendDrawingMessage(
   dataUrl: string,
 ): Promise<void> {
   if (!uid) throw new Error("Not authenticated");
+  assertAccount(uid);
+  const current = captureAccount(uid);
   if (!dataUrl?.startsWith("data:image/")) throw new Error("Invalid drawing payload");
 
   const blob = dataUrlToBlob(dataUrl);
@@ -239,6 +248,7 @@ export async function sendDrawingMessage(
     throw new Error(`Drawing upload failed (${code}): ${message}`);
   }
 
+  if (!current()) throw new Error("Your account changed. Please try again.");
   await addDoc(messagesRef(connectionId), {
     senderId: uid,
     type: "drawing" as ConnectionMessageType,
@@ -272,6 +282,7 @@ export async function addReaction(
   emoji: string,
 ): Promise<void> {
   // Upsert one reaction per user per message (deterministic id = uid)
+  assertAccount(uid);
   const ref = doc(reactionsRef(connectionId, messageId), uid);
   await setDoc(ref, {
     userId: uid,
@@ -299,6 +310,7 @@ export async function shareMood(
   intensity: number,
   note?: string,
 ): Promise<void> {
+  assertAccount(uid);
   await addDoc(moodsRef(connectionId), {
     senderId: uid,
     mood,

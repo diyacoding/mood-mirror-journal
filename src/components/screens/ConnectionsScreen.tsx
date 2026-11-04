@@ -6,7 +6,8 @@ import { Copy, LogOut, Pencil, Send, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { toast as notifications } from "sonner";
+import { captureAccount } from "@/lib/accountSession";
 import { auth } from "@/lib/firebase";
 import {
   acceptInvite,
@@ -34,6 +35,11 @@ interface Props {
 }
 
 export const ConnectionsScreen = ({ user }: Props) => {
+  const isCurrent = captureAccount(user.uid);
+  const toast = {
+    success: (message: string) => { if (isCurrent()) notifications.success(message); },
+    error: (message: string) => { if (isCurrent()) notifications.error(message); },
+  };
   const icons = useIcons();
   const { connection, loading, error } = useConnection(user.uid);
   const [code, setCode] = useState("");
@@ -112,6 +118,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
     setText("");
     try {
       await sendTextMessage(cid, user.uid, t);
+      if (!isCurrent()) return;
       bumpCloudCounter(user.uid, "lettersSent");
     } catch (e: any) {
       toast.error("Failed to send");
@@ -123,6 +130,7 @@ export const ConnectionsScreen = ({ user }: Props) => {
     if (!cid) return;
     try {
       await sendDrawingMessage(cid, user.uid, dataUrl);
+      if (!isCurrent()) return;
       bumpCloudCounter(user.uid, "lettersSent");
       toast.success("Drawing sent");
     } catch (e: any) {

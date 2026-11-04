@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { applyThemeHues } from "@/lib/themeHue";
 import { setAudioSettings } from "@/lib/audioEngine";
 import { auth } from "@/lib/firebase";
@@ -112,10 +112,6 @@ export function usePreferences() {
   const uid = activeUid;
   const isCurrent = uid ? captureAccount(uid) : () => false;
   const prefs = useSyncExternalStore(subscribe, () => cache, () => cache);
-
-  useEffect(() => {
-    applyPreferences(prefs);
-  }, [prefs]);
 
   const update = useCallback((patch: Partial<Preferences>) => {
     if (isCurrent()) setPreferences(patch, uid);

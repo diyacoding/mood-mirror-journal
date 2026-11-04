@@ -9,6 +9,8 @@ import { ReflectionSection } from "@/components/ReflectionSection";
 import type { MoodKey, MoodReflection } from "@/lib/moodTypes";
 import { addMoodEntry, type MoodSaveResult } from "@/lib/moodApi";
 import { toast } from "sonner";
+import { auth } from "@/lib/firebase";
+import { captureAccount } from "@/lib/accountSession";
 
 interface Props {
   initialMood?: MoodKey;
@@ -30,6 +32,9 @@ export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    const current = captureAccount(uid);
     if (!mood) {
       toast.error("Pick a mood first");
       return;
@@ -50,11 +55,12 @@ export const LogScreen = ({ initialMood, onBack, onSaved }: Props) => {
         source: "manual",
         behaviors: { sleepHours, exerciseMinutes, screenTimeHours },
       });
+      if (!current()) return;
       toast.success("Mood saved ✨");
       onSaved(result);
     } catch (e: any) {
       console.error("[LogScreen] save error", e);
-      toast.error(e?.message || "Failed to save");
+      if (current()) toast.error(e?.message || "Failed to save");
     } finally {
       setSaving(false);
     }

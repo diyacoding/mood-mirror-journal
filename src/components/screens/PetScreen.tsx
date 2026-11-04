@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { User } from "firebase/auth";
-import { toast } from "sonner";
+import { toast as notifications } from "sonner";
 import { BookOpen, Gift, Plus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePet } from "@/hooks/usePet";
@@ -30,7 +30,8 @@ import { PetScrapbook } from "@/components/pet/PetScrapbook";
 import { PetNameDialog } from "@/components/pet/PetNameDialog";
 import { PetNameEditor } from "@/components/pet/PetNameEditor";
 import { cn } from "@/lib/utils";
-import { celebrate } from "@/lib/celebrate";
+import { celebrate as celebration } from "@/lib/celebrate";
+import { captureAccount } from "@/lib/accountSession";
 
 interface Props {
   user: User;
@@ -39,6 +40,12 @@ interface Props {
 }
 
 export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
+  const isCurrent = captureAccount(user.uid);
+  const toast = {
+    success: (message: string) => { if (isCurrent()) notifications.success(message); },
+    error: (message: string) => { if (isCurrent()) notifications.error(message); },
+  };
+  const celebrate = (kind: Parameters<typeof celebration>[0]) => { if (isCurrent()) celebration(kind); };
   const { owner, items, currentPet, loading, itemsLoading, error } = usePet(user.uid);
   const icons = useIcons();
   const [creator, setCreator] = useState(false);
@@ -106,6 +113,7 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
   const handleCreate = async (dataUrl: string) => {
     if (savingRef.current) return;
     const name = await askName();
+    if (!isCurrent()) throw new Error("Your account changed. Please try again.");
     setNamePrompt(null);
     if (!name) throw new Error("cancelled");
     savingRef.current = true;
@@ -154,6 +162,7 @@ export const PetScreen = ({ user, hatchTrigger = 0, onLogMood }: Props) => {
     const label = kind && kind !== "custom" ? accessoryMeta(kind).label : undefined;
     try {
       const id = await addCustomAccessory(user.uid, dataUrl, { kind, label });
+      if (!isCurrent()) return;
       if (currentPet) {
         await applyAccessory(user.uid, id);
         toast.success(

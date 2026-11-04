@@ -153,6 +153,7 @@ export function subscribePetItems(
 // One in-flight pet save per user: repeated taps / triggers reuse the same
 // promise instead of writing duplicate pets.
 const inFlightCreates = new Map<string, Promise<string>>();
+const createSessions = new Map<string, () => boolean>();
 
 export function createPet(
   uid: string,
@@ -161,8 +162,11 @@ export function createPet(
   extra?: { source?: PetSource; storagePath?: string },
 ): Promise<string> {
   const existing = inFlightCreates.get(uid);
-  if (existing) return existing;
-  const p = createPetOnce(uid, imageDataUrl, name, extra).finally(() => inFlightCreates.delete(uid));
+  if (existing && createSessions.get(uid)?.()) return existing;
+  createSessions.set(uid, captureAccount(uid));
+  const p = createPetOnce(uid, imageDataUrl, name, extra).finally(() => {
+    if (inFlightCreates.get(uid) === p) { inFlightCreates.delete(uid); createSessions.delete(uid); }
+  });
   inFlightCreates.set(uid, p);
   return p;
 }
