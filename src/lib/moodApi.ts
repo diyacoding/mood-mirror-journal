@@ -13,6 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
+import { captureAccount } from "./accountSession";
 import type { MoodEntry } from "./moodTypes";
 import {
   awardResolvedPointsInTransaction,
@@ -100,6 +101,7 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
   const uid = auth.currentUser?.uid;
   console.info("[mood-flow] addMoodEntry start", { uid, mood: entry.mood });
   if (!uid) throw new Error("You must be signed in to save a mood.");
+  const current = captureAccount(uid);
 
   const entryRef = doc(col());
   const reflection = sanitizeReflection(entry.reflection);
@@ -132,6 +134,7 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
   // 1) Save the mood entry — this is the critical write.
   try {
     const { setDoc } = await import("firebase/firestore");
+    if (!current()) throw new Error("Your account changed. Please try again.");
     await setDoc(entryRef, payload);
     console.info("[mood-flow] Mood saved ✔", { id: entryRef.id });
   } catch (err: any) {
@@ -157,6 +160,7 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
     pendingNewPet: false,
   };
   try {
+    if (!current()) return { id: entryRef.id, petAward };
     const petOwner = await resolveOwnerKey(uid);
     console.info("[mood-flow] Pet owner resolved", petOwner);
     await preparePetOwnerDoc(petOwner);
@@ -187,6 +191,7 @@ export async function addMoodEntry(entry: NewMoodEntry): Promise<MoodSaveResult>
 export async function deleteMoodEntry(id: string): Promise<void> {
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error("You must be signed in to delete a mood.");
+  const current = captureAccount(uid);
   const ref = doc(db, MOOD_COLLECTION, id);
   // Explicit, user-initiated deletes only — and only of the caller's own entry.
   const snap = await getDoc(ref);
@@ -198,6 +203,7 @@ export async function deleteMoodEntry(id: string): Promise<void> {
     throw new Error("You can only delete your own entries.");
   }
   console.info("[mood-flow] Explicit user delete", { id, uid });
+  if (!current()) throw new Error("Your account changed. Please try again.");
   await deleteDoc(ref);
 }
 

@@ -24,6 +24,7 @@ import { activateAccountPreferences, getInitialPreferences, setPreferences, useP
 import { captureAccount, installAccountLifecycle } from "./accountSession";
 import { useConnection } from "@/hooks/useConnection";
 import { usePet } from "@/hooks/usePet";
+import { useMoodEntries } from "@/hooks/useMoodEntries";
 
 function switchTo(uid: string | null) {
   act(() => {
@@ -37,10 +38,10 @@ beforeEach(() => { localStorage.clear(); switchTo(null); });
 describe("Account isolation", () => {
   it("keeps A's theme and B's theme separately through switches and reloads", () => {
     switchTo("A"); setPreferences({ theme: "light", lightHue: "rose" });
-    switchTo("B"); setPreferences({ theme: "dark", darkHue: "forest" });
+    switchTo("B"); setPreferences({ theme: "dark", darkHue: "green" });
     switchTo("A"); expect(getInitialPreferences()).toMatchObject({ theme: "light", lightHue: "rose" });
     activateAccountPreferences("A"); expect(getInitialPreferences().theme).toBe("light");
-    switchTo("B"); expect(getInitialPreferences()).toMatchObject({ theme: "dark", darkHue: "forest" });
+    switchTo("B"); expect(getInitialPreferences()).toMatchObject({ theme: "dark", darkHue: "green" });
   });
   it("keeps different sticker selections associated with their own UID", () => {
     switchTo("A"); setPreferences({ stickerSet: "pastel" });
@@ -86,5 +87,20 @@ describe("Account isolation", () => {
     switchTo("B"); const h = renderHook(() => usePet("B")); act(() => mocks.connections.get("B")?.(null));
     act(() => mocks.owners.get("B")?.({ id: "u_A", ownerType: "user", ownerId: "A", members: ["A"] }));
     expect(h.result.current.owner).toBeNull(); expect(h.result.current.error).toContain("ownership"); h.unmount();
+  });
+  it("accepts shared pets only for an explicitly resolved member and clears them after disconnect", () => {
+    switchTo("A"); const h = renderHook(() => usePet("A"));
+    act(() => mocks.connections.get("A")?.({ id: "AB", status: "active", userA: "A", userB: "B" }));
+    act(() => mocks.owners.get("A")?.({ id: "c_AB", ownerType: "connection", ownerId: "AB", members: ["A", "B"], currentPetId: "shared" }));
+    act(() => mocks.items.get("c_AB")?.([{ id: "shared", name: "Together", accessories: [] }]));
+    expect(h.result.current.currentPet?.name).toBe("Together");
+    act(() => mocks.connections.get("A")?.(null)); expect(h.result.current.owner).toBeNull(); expect(h.result.current.items).toEqual([]); h.unmount();
+  });
+  it("never returns A mood history during B loading or after a late A callback", () => {
+    switchTo("A"); const h = renderHook(({ uid }) => useMoodEntries(uid), { initialProps: { uid: "A" } });
+    act(() => mocks.moods.get("A")?.([{ id: "A-mood", mood: "happy" }])); expect(h.result.current.entries[0]?.id).toBe("A-mood");
+    switchTo("B"); h.rerender({ uid: "B" }); expect(h.result.current.entries).toEqual([]); expect(h.result.current.loading).toBe(true);
+    act(() => mocks.moods.get("A")?.([{ id: "late-A" }])); expect(h.result.current.entries).toEqual([]);
+    act(() => mocks.moods.get("B")?.([{ id: "B-mood", mood: "calm" }])); expect(h.result.current.entries[0]?.id).toBe("B-mood"); h.unmount();
   });
 });

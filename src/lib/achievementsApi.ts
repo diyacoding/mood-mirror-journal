@@ -7,6 +7,7 @@
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { readCounters, readEarned, writeEarned, type EarnedMap } from "./achievements";
+import { captureAccount } from "./accountSession";
 
 const COL = "user_achievements";
 const ref = (uid: string) => doc(db, COL, uid);
@@ -28,11 +29,14 @@ function writeLocalCounters(uid: string, counters: Record<string, number>) {
 
 /** Merge local state up on first load so existing progress is never lost. */
 export async function migrateLocalAchievements(uid: string): Promise<void> {
+  const current = captureAccount(uid);
+  if (!current()) return;
   const localEarned = readEarned(uid);
   const localCounters = readCounters(uid);
   if (Object.keys(localEarned).length === 0 && Object.keys(localCounters).length === 0) return;
   try {
     const snap = await getDoc(ref(uid));
+    if (!current()) return;
     const remote = (snap.exists() ? snap.data() : {}) as Partial<AchievementDoc>;
     const earned: EarnedMap = { ...localEarned, ...(remote.earned ?? {}) };
     const counters: Record<string, number> = { ...(remote.counters ?? {}) };
@@ -77,6 +81,8 @@ export function subscribeAchievements(
  * returned so callers announce each badge exactly once, ever.
  */
 export async function claimAchievements(uid: string, ids: string[]): Promise<string[]> {
+  const current = captureAccount(uid);
+  if (!current()) return [];
   if (ids.length === 0) return [];
   const now = Date.now();
   let remoteEarned: EarnedMap = {};
@@ -88,6 +94,7 @@ export async function claimAchievements(uid: string, ids: string[]): Promise<str
   } catch {
     remoteOk = false;
   }
+  if (!current()) return [];
   const local = readEarned(uid);
   const fresh = ids.filter((id) => local[id] == null && remoteEarned[id] == null);
   if (fresh.length === 0) return [];
@@ -107,6 +114,8 @@ export async function claimAchievements(uid: string, ids: string[]): Promise<str
 
 /** Increment a counter (e.g. lettersSent) in both Firestore and the local mirror. */
 export async function bumpCloudCounter(uid: string, name: string, by = 1): Promise<void> {
+  const current = captureAccount(uid);
+  if (!current()) return;
   const local = readCounters(uid);
   let counters: Record<string, number> = { ...local };
   try {
@@ -116,6 +125,7 @@ export async function bumpCloudCounter(uid: string, name: string, by = 1): Promi
   } catch {
     /* offline */
   }
+  if (!current()) return;
   counters[name] = (counters[name] ?? 0) + by;
   writeLocalCounters(uid, counters);
   try {
