@@ -31,6 +31,7 @@ import type { PetItem } from "@/lib/petTypes";
 import type { AchievementState } from "@/hooks/useAchievements";
 import type { Screen } from "@/components/BottomNav";
 import { toast } from "sonner";
+import { captureAccount } from "@/lib/accountSession";
 
 interface Props {
   user: User;
@@ -49,6 +50,7 @@ const Stat = ({ label, value }: { label: string; value: string | number }) => (
 );
 
 export const ProfileScreen = ({ user, entries, pets, currentPet, achievements, onNavigate }: Props) => {
+  const isCurrent = captureAccount(user.uid);
   const { profile, update } = useProfile(user);
   const { prefs } = usePreferences();
   const { theme } = useTheme();
@@ -69,6 +71,7 @@ export const ProfileScreen = ({ user, entries, pets, currentPet, achievements, o
     }
     const reader = new FileReader();
     reader.onload = () => {
+      if (!isCurrent()) return;
       update({ photoDataUrl: String(reader.result) });
       toast.success("Profile picture updated");
     };

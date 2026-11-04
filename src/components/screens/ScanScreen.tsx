@@ -15,6 +15,8 @@ import { useIcons } from "@/lib/iconSets";
 import { addMoodEntry, type MoodSaveResult } from "@/lib/moodApi";
 import { ReflectionSection } from "@/components/ReflectionSection";
 import { toast } from "sonner";
+import { auth } from "@/lib/firebase";
+import { captureAccount } from "@/lib/accountSession";
 
 const INTENSITY_LABEL = ["Very Low", "Very Low", "Low", "Low", "Moderate", "Moderate", "High", "High", "Very High", "Very High"];
 
@@ -87,6 +89,9 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
   const reset = () => { setResult(null); setOverride(undefined); setReflection({}); setIntensity(5); };
 
   const confirm = async () => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    const current = captureAccount(uid);
     const final = override ?? result?.mood;
     if (!final || !result) {
       toast.error("Pick a mood first");
@@ -101,11 +106,12 @@ export const ScanScreen = ({ onBack, onConfirm }: Props) => {
         confidence: result.confidence,
         source: "scan",
       });
+      if (!current()) return;
       toast.success("Mood saved ✨");
       onConfirm(saveResult);
     } catch (e) {
       console.error(e);
-      toast.error("Save failed");
+      if (current()) toast.error("Save failed");
     } finally {
       setSaving(false);
     }
